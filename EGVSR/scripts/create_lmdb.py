@@ -14,7 +14,7 @@ def split_spatial_temporal(frames, split_ratio):
     _, h, w, _ = frames.shape
     splits = []
     rows, cols = map(int, split_ratio.split("_")) 
-    for i in range(rows * cols):  # 4x4 = 16 secvențe
+    for i in range(rows * cols):
         sub_seq = frames[:, (i // cols) * h // rows: ((i // cols) + 1) * h // rows, 
                           (i % cols) * w // cols: ((i % cols) + 1) * w // cols, :]
         splits.append(sub_seq)
@@ -36,9 +36,9 @@ def create_lmdb_with_splits(dataset, raw_dir, lmdb_dir, filter_file='', split_ra
     for seq_idx in seq_idx_lst:
         frm_path_lst = sorted(glob.glob(osp.join(raw_dir, seq_idx, '*.png')))
         frm = cv2.imread(frm_path_lst[0], cv2.IMREAD_UNCHANGED)
-        # DELETE!!!
-        h, w, _ = frm.shape
-        frm = cv2.resize(frm, (w // 4, h // 4), interpolation=cv2.INTER_CUBIC)
+        # # DELETE!!!
+        # h, w, _ = frm.shape
+        # frm = cv2.resize(frm, (w // 4, h // 4), interpolation=cv2.INTER_CUBIC)
         nbytes_per_frm = frm.nbytes
         nbytes += len(frm_path_lst) * nbytes_per_frm
     alloc_size = round(2 * nbytes)
@@ -62,9 +62,9 @@ def create_lmdb_with_splits(dataset, raw_dir, lmdb_dir, filter_file='', split_ra
 
         # Read frames and split into spatial-temporal sequences
         frames = [cv2.imread(f, cv2.IMREAD_UNCHANGED) for f in frm_path_lst]
-        # DELETE!!!!
-        h, w, _ = frames[0].shape
-        frames = [cv2.resize(frm, (w // 4, h // 4), interpolation=cv2.INTER_CUBIC) for frm in frames]
+        # # DELETE!!!!
+        # h, w, _ = frames[0].shape
+        # frames = [cv2.resize(frm, (w // 4, h // 4), interpolation=cv2.INTER_CUBIC) for frm in frames]
         frames = np.stack(frames)
         sub_sequences = split_spatial_temporal(frames, split_ratio)
         
