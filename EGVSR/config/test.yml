@@ -1,0 +1,66 @@
+# basic configs
+scale: 4
+manual_seed: 0
+verbose: false
+gt_bit_depth: 8
+
+# dataset configs
+dataset:
+  degradation:
+    type: BI
+    sigma: 1.5
+
+  test1:
+    name: TecoGAN
+    gt_seq_dir: ../data/TecoGAN_HR.lmdb  
+    lr_seq_dir: ../data/TecoGAN_LR.lmdb
+    # gt_seq_dir: /media/sda/WorkAlex/data/Transformers_light/UHD  # Paired Folder Dataset
+    # lr_seq_dir: /media/sda/WorkAlex/data/Transformers_light/DVD  # Paired Lmdb Dataset
+    # gt_seq_dir: ../data/transformers_light_UHD.lmdb
+    # lr_seq_dir: ../data/transformers_light_DVD.lmdb
+    filter_file: ~
+    num_workers: 0
+    pin_memory: true
+
+# model configs
+model:
+  name: FRVSR
+
+  generator:
+    name: EGVSR  # efficient GAN-based generator
+    in_nc: 3
+    out_nc: 3
+    nf: 64
+    # nb: 10 # Initially
+    nb: 8
+    # load_path: experiments/tecogan_training/train/ckpt/G_iter306000.pth
+    load_path: experiments/tecogan_training_3/train/ckpt/G_iter305000.pth
+
+
+# test configs
+test:
+  # whether to save the SR results
+  save_res: true
+  res_dir: /media/sda/WorkAlex/results
+
+  # temporal padding
+  padding_mode: reflect
+  num_pad_front: 5
+  tempo_extent: 24
+
+# metric configs
+metric:
+  PSNR:
+    colorspace: rgb
+    mult: 1.0
+
+  LPIPS:
+    model: net-lin
+    net: alex
+    colorspace: rgb
+    spatial: false
+    version: 0.1
+    mult: 1.0
+
+  # tOF:
+  #   mult: 1.0
