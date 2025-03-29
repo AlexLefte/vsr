@@ -8,7 +8,7 @@ def move_files(txt_file, destination_folder):
     with open(txt_file, 'r') as f:
         for line in f:
             sequence = line.strip()  # Citește secvența (de exemplu 00001/0001)
-            sequence_folder = os.path.join(source_folder, sequence)
+            sequence_folder = os.path.join(sequence_path, sequence)
             
             if os.path.isdir(sequence_folder):  # Verifică dacă directorul există
                 # Muta întregul director în folderul de destinație
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     source_folder = args.path
     sequence_path = osp.join(source_folder, 'sequences')
     train_folder = osp.join(source_folder, 'train')
-    val_folder = osp.join(source_folder, 'val')
+    val_folder = osp.join(source_folder, 'test')
 
     # Create destination folders
     os.makedirs(train_folder, exist_ok=True)

@@ -210,16 +210,16 @@ def check_lmdb(dataset, lmdb_dir):
 if __name__ == '__main__':
     # parse args
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default="VimeoTecoGAN",
-                        help='VimeoTecoGAN | REDS')
-    parser.add_argument('--raw_dir', type=str, default="/media/sda/WorkAlex/data/TecoGAN",
+    parser.add_argument('--dataset', type=str, default="Vimeo90K")
+    parser.add_argument('--raw_dir', type=str, default="data/Vimeo90K/raw/train",
                         help='Dir to the raw data')
-    parser.add_argument('--lmdb_dir', type=str, default="TecoGAN_LR.lmdb",
+    parser.add_argument('--lmdb_dir', type=str, default="data/Vimeo90K/lmdb/V90K_train_GT.lmdb",
                         help='Dir to the lmdb data')
     parser.add_argument('--filter_file', type=str, default='',
                         help='File used to select sequences')
     parser.add_argument('--split_ratio', type=str, default='1_1',
                         help='Provided as "h_w". Split ratio for saved clips: (h_orig // h) X (w_orig // w)')
+    parser.add_argument('--degradation', type=str, default=None, help="Degradation type")
     parser.add_argument('--split', action='store_true', help="Enable split mode if this flag is present")
     args = parser.parse_args()
 
