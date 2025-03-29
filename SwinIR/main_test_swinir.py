@@ -6,10 +6,10 @@ from collections import OrderedDict
 import os
 import torch
 import requests
-
+from time import time
 from models.network_swinir import SwinIR as net
 from utils import util_calculate_psnr_ssim as util
-
+from lpips import LPIPS, im2tensor
 
 def main():
     parser = argparse.ArgumentParser()
@@ -45,21 +45,30 @@ def main():
     model.eval()
     model = model.to(device)
 
+    # Define lpips
+    calculate_lpips = LPIPS(net='alex', verbose=False).cuda()
+
     # setup folder and path
     folder, save_dir, border, window_size = setup(args)
     os.makedirs(save_dir, exist_ok=True)
     test_results = OrderedDict()
     test_results['psnr'] = []
     test_results['ssim'] = []
+    test_results['lpips'] = []
     test_results['psnr_y'] = []
     test_results['ssim_y'] = []
     test_results['psnrb'] = []
     test_results['psnrb_y'] = []
     psnr, ssim, psnr_y, ssim_y, psnrb, psnrb_y = 0, 0, 0, 0, 0, 0
 
-    for idx, path in enumerate(sorted(glob.glob(os.path.join(folder, '*')))):
+    images = sorted(glob.glob(os.path.join(folder, '*')))
+    save_dir = 'output_dir'
+    times = []
+    
+    for idx, path in enumerate(images):
         # read image
-        imgname, img_lq, img_gt = get_image_pair(args, path)  # image to HWC-BGR, float32
+        # imgname, img_lq, img_gt = get_image_pair(args, path)  # image to HWC-BGR, float32
+        imgname, img_lq, img_gt = get_image_pair_custom(path, args.folder_lq, args.folder_gt)  # image to HWC-BGR, float32
         img_lq = np.transpose(img_lq if img_lq.shape[2] == 1 else img_lq[:, :, [2, 1, 0]], (2, 0, 1))  # HCW-BGR to CHW-RGB
         img_lq = torch.from_numpy(img_lq).float().unsqueeze(0).to(device)  # CHW-RGB to NCHW-RGB
 
@@ -71,7 +80,10 @@ def main():
             w_pad = (w_old // window_size + 1) * window_size - w_old
             img_lq = torch.cat([img_lq, torch.flip(img_lq, [2])], 2)[:, :, :h_old + h_pad, :]
             img_lq = torch.cat([img_lq, torch.flip(img_lq, [3])], 3)[:, :, :, :w_old + w_pad]
+            start = time()
             output = test(img_lq, model, args, window_size)
+            end = time()
+            times.append((end-start)*1000)
             output = output[..., :h_old * args.scale, :w_old * args.scale]
 
         # save image
@@ -79,7 +91,7 @@ def main():
         if output.ndim == 3:
             output = np.transpose(output[[2, 1, 0], :, :], (1, 2, 0))  # CHW-RGB to HCW-BGR
         output = (output * 255.0).round().astype(np.uint8)  # float32 to uint8
-        cv2.imwrite(f'{save_dir}/{imgname}_SwinIR.png', output)
+        cv2.imwrite(f'{save_dir}/{imgname}.png', output)
 
         # evaluate psnr/ssim/psnr_b
         if img_gt is not None:
@@ -89,8 +101,11 @@ def main():
 
             psnr = util.calculate_psnr(output, img_gt, crop_border=border)
             ssim = util.calculate_ssim(output, img_gt, crop_border=border)
+            with torch.no_grad():
+                lpips = calculate_lpips(im2tensor(output[...,::-1]).cuda(), im2tensor(img_gt[...,::-1]).cuda()).item()
             test_results['psnr'].append(psnr)
             test_results['ssim'].append(ssim)
+            test_results['lpips'].append(lpips)
             if img_gt.ndim == 3:  # RGB image
                 psnr_y = util.calculate_psnr(output, img_gt, crop_border=border, test_y_channel=True)
                 ssim_y = util.calculate_ssim(output, img_gt, crop_border=border, test_y_channel=True)
@@ -102,17 +117,19 @@ def main():
                 if args.task in ['color_jpeg_car']:
                     psnrb_y = util.calculate_psnrb(output, img_gt, crop_border=border, test_y_channel=True)
                     test_results['psnrb_y'].append(psnrb_y)
-            print('Testing {:d} {:20s} - PSNR: {:.2f} dB; SSIM: {:.4f}; PSNRB: {:.2f} dB;'
+            print('Testing {:d} {:20s} - PSNR: {:.2f} dB; SSIM: {:.4f}; LPIPS: {:.4f}, PSNRB: {:.2f} dB;'
                   'PSNR_Y: {:.2f} dB; SSIM_Y: {:.4f}; PSNRB_Y: {:.2f} dB.'.
-                  format(idx, imgname, psnr, ssim, psnrb, psnr_y, ssim_y, psnrb_y))
+                  format(idx, imgname, psnr, ssim, lpips, psnrb, psnr_y, ssim_y, psnrb_y))
         else:
             print('Testing {:d} {:20s}'.format(idx, imgname))
+    print(f'Avg time in miliseconds: {np.mean(times[3:])}')
 
     # summarize psnr/ssim
     if img_gt is not None:
         ave_psnr = sum(test_results['psnr']) / len(test_results['psnr'])
         ave_ssim = sum(test_results['ssim']) / len(test_results['ssim'])
-        print('\n{} \n-- Average PSNR/SSIM(RGB): {:.2f} dB; {:.4f}'.format(save_dir, ave_psnr, ave_ssim))
+        ave_lpips = sum(test_results['lpips']) / len(test_results['lpips'])
+        print('\n{} \n-- Average PSNR/SSIM/LPIPS(RGB): {:.2f} dB; {:.4f}; {:.4f}.'.format(save_dir, ave_psnr, ave_ssim, ave_lpips))
         if img_gt.ndim == 3:
             ave_psnr_y = sum(test_results['psnr_y']) / len(test_results['psnr_y'])
             ave_ssim_y = sum(test_results['ssim_y']) / len(test_results['ssim_y'])
@@ -196,7 +213,7 @@ def setup(args):
     # 001 classical image sr/ 002 lightweight image sr
     if args.task in ['classical_sr', 'lightweight_sr']:
         save_dir = f'results/swinir_{args.task}_x{args.scale}'
-        folder = args.folder_gt
+        folder = args.folder_gt if args.folder_gt is not None else args.folder_lq
         border = args.scale
         window_size = 8
 
@@ -273,6 +290,16 @@ def get_image_pair(args, path):
         img_lq = img_lq.astype(np.float32)/ 255.
 
     return imgname, img_lq, img_gt
+
+
+def  get_image_pair_custom(path, lq_path, gt_path=None):
+    (img_name, img_ext) = os.path.splitext(os.path.basename(path))
+    img_gt = None
+    if gt_path is not None:
+        img_gt = cv2.imread(os.path.join(gt_path, img_name + img_ext), cv2.IMREAD_COLOR).astype(np.float32) / 255.
+    img_lq = cv2.imread(os.path.join(lq_path, img_name + img_ext), cv2.IMREAD_COLOR).astype(
+        np.float32) / 255.
+    return img_name, img_lq, img_gt
 
 
 def test(img_lq, model, args, window_size):
