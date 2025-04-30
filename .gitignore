@@ -171,6 +171,5 @@ cython_debug/
 .pypirc
 
 # Others
-data
 datasets
 papers
