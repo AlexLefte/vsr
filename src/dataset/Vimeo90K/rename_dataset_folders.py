@@ -2,7 +2,7 @@ import os
 import shutil
 
 # Path to the folder containing the video sequences
-source_folder = 'data/Vimeo90K/raw/train'
+source_folder = 'datasets/Vimeo90K/raw/test'
 
 # Traverse the files and subfolders
 for root, dirs, files in os.walk(source_folder):
