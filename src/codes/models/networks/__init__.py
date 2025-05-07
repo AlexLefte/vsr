@@ -14,14 +14,31 @@ def define_generator(opt):
             scale=opt['scale'])
 
     elif net_G_opt['name'].lower() == 'egvsr':  # efficient GAN-based generator
-        from .egvsr_nets import FRNet
+        from .fr_net import FRNet
         net_G = FRNet(
             in_nc=net_G_opt['in_nc'],
             out_nc=net_G_opt['out_nc'],
             nf=net_G_opt['nf'],
             nb=net_G_opt['nb'],
-            degradation=opt['dataset']['degradation']['type'],
+            mode=opt['dataset']['degradation']['type'],
             scale=opt['scale'])
+    elif net_G_opt['name'].lower() == 'edvr':
+        from .edvr_net import EDVRNet
+        net_G = EDVRNet(
+            in_channels=opt['model']['generator'].get('in_channels', 3),
+            out_channels=opt['model']['generator'].get('out_channels', 3),
+            num_feat=opt['model']['generator'].get('num_feat', 64),
+            num_frames=opt['model']['generator'].get('num_frame', 5),
+            deformable_groups=opt['model']['generator'].get('deformable_groups', 8),
+            num_extract_block=opt['model']['generator'].get('num_extract_block', 5),
+            num_reconstruct_block=opt['model']['generator'].get('num_reconstruct_block', 10),
+            res_frame_idx=opt['model']['generator'].get('res_frame_idx', None),
+            hr_in=opt['model']['generator'].get('hr_in', False),
+            with_predeblur=opt['model']['generator'].get('with_predeblur', False),
+            with_tsa=opt['model']['generator'].get('with_tsa', True),
+            upsample_func=opt['model']['generator'].get('upsample_func', 'bicubic')
+        )
+
 
     elif net_G_opt['name'].lower() == 'espnet':  # ESPCN generator
         from .espcn_nets import ESPNet

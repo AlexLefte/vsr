@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 import torch
 
-from models.networks.egvsr_nets import FRNet
+from codes.models.networks.fr_net import FRNet
 
 import argparse
 
@@ -24,7 +24,7 @@ def post_process(image, bit_depth=16):
 def main (args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    model = FRNet(in_nc=3, out_nc=3, nf=64, nb=8, degradation='BI', scale=args.scale)
+    model = FRNet(in_nc=3, out_nc=3, nf=64, nb=8, mode='BI', scale=args.scale)
     model.load_state_dict(torch.load(args.model))
 
     model.eval()

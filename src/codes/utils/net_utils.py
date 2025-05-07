@@ -83,17 +83,17 @@ def backward_warp(x, flow, mode='bilinear', padding_mode='border'):
     return output
 
 
-def get_upsampling_func(scale=4, degradation='BI'):
-    if degradation == 'BI':
+def get_upsampling_func(scale=4, mode='bicubic'):
+    if mode == 'bilinear':
         upsample_func = functools.partial(
-            F.interpolate, scale_factor=scale, mode='bilinear',
+            F.interpolate, scale_factor=scale, mode=mode,
             align_corners=False)
-
-    elif degradation == 'BD':
+    elif mode == 'bicubic':
         upsample_func = BicubicUpsample(scale_factor=scale)
-
+    elif mode == '':
+        upsample_func = None
     else:
-        raise ValueError('Unrecognized degradation: {}'.format(degradation))
+        raise ValueError('Unrecognized upsampling function: {}'.format(mode))
 
     return upsample_func
 
