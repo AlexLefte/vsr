@@ -42,7 +42,9 @@ def train(opt):
     start_iter, iter = opt['train']['start_iter'], 0
     gt_bit_depth = opt['train'].get('gt_bit_depth', 8)
     gt_dtype = np.uint8 if gt_bit_depth == 8  else np.uint16
-    
+    has_lr = opt['dataset']['train'].get('lr_seq_dir', None) is not None
+    print(f"Has LR: {has_lr}.")
+
     test_freq = opt['test']['test_freq']
     log_freq = opt['logger']['log_freq']
     ckpt_freq = opt['logger']['ckpt_freq']
@@ -66,7 +68,7 @@ def train(opt):
             model.update_learning_rate()
 
             # prepare data
-            data = prepare_data(opt, data, kernel)
+            data = prepare_data(opt, data, kernel, has_lr=has_lr)
 
             # train for a mini-batch
             model.train(data)
@@ -342,8 +344,8 @@ if __name__ == '__main__':
                         help='directory of the current experiment')
     parser.add_argument('--mode', type=str, required=True,
                         help='which mode to use (train|test|profile)')
-    parser.add_argument('--model', type=str, required=True,
-                        help='which model to use (FRVSR|TecoGAN)')
+    # parser.add_argument('--model', type=str, required=True,
+    #                     help='which model to use (FRVSR|TecoGAN)')
     parser.add_argument('--opt', type=str, default='config/train.yml',
                         help='path to the option yaml file')
     parser.add_argument('--gpu_id', type=int, default=-1,

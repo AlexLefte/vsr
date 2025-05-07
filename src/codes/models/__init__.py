@@ -1,3 +1,4 @@
+from .isr_model import ISRModel
 from .vsr_model import VSRModel
 from .vsrgan_model import VSRGANModel
 
@@ -22,6 +23,9 @@ def define_model(opt):
 
     elif opt['model']['name'].lower() in vsrgan_model_lst:
         model = VSRGANModel(opt)
+
+    elif opt['model']['name'].lower() == 'isr':
+        model = ISRModel(opt)
 
     elif opt['model']['name'].lower() == 'espcn':
         model = ESPCNModel(opt)

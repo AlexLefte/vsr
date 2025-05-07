@@ -1,7 +1,6 @@
-from collections import OrderedDict
-
 import torch
 import torch.optim as optim
+from collections import OrderedDict
 from .base_model import BaseModel
 from .networks import define_generator
 from .networks.vgg_nets import VGGFeatureExtractor

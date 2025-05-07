@@ -110,12 +110,13 @@ class EDVRNet(nn.Module):
             self.fusion = nn.Conv2d(num_frames * num_feat, num_feat, 1, 1)
 
         # Reconstruction
-        upsample_fn = get_upsampling_func(upsample_func)
+        upsample_fn = get_upsampling_func(mode=upsample_func)
         self.reconstruction = SrResNet(in_channels=num_feat,
                                        out_nc=out_channels,
                                        nf=num_feat,
                                        nb=num_reconstruct_block,
-                                       upsample_func=upsample_fn)
+                                       upsample_func=upsample_fn,
+                                       ref_idx=self.res_frame_idx)
         self.reconstruction_channels = num_feat
 
         # activation function

@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 
 from .paired_lmdb_dataset import PairedLMDBDataset, PairedLMDBDatasetV2
 from .unpaired_lmdb_dataset import UnpairedLMDBDataset
-from .paired_folder_dataset import PairedFolderDataset
+from .paired_folder_dataset import PairedFolderDatasetInfer, PairedFolderDatasetTrain
 
 
 def is_lmdb(path):
@@ -32,12 +32,22 @@ def create_dataloader(opt, dataset_idx='train'):
         if degradation_type == 'BI':
             # create dataset
             # dataset = PairedLMDBDatasetV2(
-            dataset = PairedLMDBDataset(data_opt,
-                                        scale=opt['scale'],
-                                        tempo_extent=opt['train']['tempo_extent'],
-                                        moving_first_frame=opt['train'].get('moving_first_frame', False),
-                                        moving_factor=opt['train'].get('moving_factor', 1.0),
-                                        train=True)
+            gt_path = data_opt['gt_seq_dir']
+            if is_lmdb(gt_path):
+                dataset = PairedLMDBDataset(data_opt,
+                                            scale=opt['scale'],
+                                            tempo_extent=opt['train']['tempo_extent'],
+                                            moving_first_frame=opt['train'].get('moving_first_frame', False),
+                                            moving_factor=opt['train'].get('moving_factor', 1.0),
+                                            train=True)
+            else:
+                dataset = PairedFolderDatasetTrain(
+                    data_opt,
+                    scale=opt['scale'],
+                    tempo_extent=opt['train']['tempo_extent'],
+                    moving_first_frame=opt['train'].get('moving_first_frame', False),
+                    moving_factor=opt['train'].get('moving_factor', 1.0),
+                    train=True)
 
         elif degradation_type == 'BD':
             # enlarge crop size to incorporate border size
@@ -75,7 +85,7 @@ def create_dataloader(opt, dataset_idx='train'):
                                         tempo_extent=opt['test']['tempo_extent'],
                                         train=False)
         elif os.path.isdir(gt_path):
-            dataset = PairedFolderDataset(data_opt, scale=opt['scale'])
+            dataset = PairedFolderDatasetInfer(data_opt, scale=opt['scale'])
         else:
             raise ValueError(f'Unrecognized GT type: {gt_path} is not a directory, nor an LMDB database.')
         
@@ -92,7 +102,7 @@ def create_dataloader(opt, dataset_idx='train'):
     return loader
 
 
-def prepare_data(opt, data, kernel):
+def prepare_data(opt, data, kernel, has_lr=False):
     """ prepare gt, lr data for training
 
         for BD degradation, generate lr data and remove border of gt data
@@ -103,7 +113,7 @@ def prepare_data(opt, data, kernel):
     device = torch.device(opt['device'])
     degradation_type = opt['dataset']['degradation']['type']
 
-    if degradation_type == 'BI':
+    if has_lr or degradation_type == 'BI':
         gt_data, lr_data = data['gt'].to(device), data['lr'].to(device)
 
     elif degradation_type == 'BD':

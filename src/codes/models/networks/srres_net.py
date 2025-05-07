@@ -21,8 +21,8 @@ class ResidualBlock(nn.Module):
 class SrResNet(nn.Module):
     """ Reconstruction & Upsampling network
     """
-    def __init__(self, in_nc=3, out_nc=3, nf=64, nb=16, upsample_func=None,
-                 scale=4, transp_conv=False):
+    def __init__(self, in_nc=3, out_nc=3, nf=64, nb=16, upsample_func=None, 
+                 scale=4, transp_conv=False, ref_idx=None):
         super(SrResNet, self).__init__()
 
         # input conv. - low frequency information extraction layer
@@ -52,6 +52,7 @@ class SrResNet(nn.Module):
 
         # upsampling function
         self.upsample_func = upsample_func
+        self.ref_idx = ref_idx
 
     def forward(self, x):
         """ x: input data
@@ -68,6 +69,9 @@ class SrResNet(nn.Module):
 
         # Upsample LR and add to the final output
         if self.upsample_func is not None:
-            out += self.upsample_func(x[:, -1, :, :])
+            if len(x.shape) == 5:
+                out += self.upsample_func(x[:, self.ref_idx, :, :, :].squeeze(1))
+            else:
+                out += self.upsample_func(x)
 
         return out
