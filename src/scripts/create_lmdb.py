@@ -20,7 +20,7 @@ def split_spatial_temporal(frames, split_ratio):
         splits.append(sub_seq)
     return splits
 
-def create_lmdb_with_splits(dataset, raw_dir, lmdb_dir, filter_file='', split_ratio='4_4'):
+def create_lmdb_with_splits(dataset, raw_dir, lmdb_dir, filter_file='', split_ratio='4_4', downsample=False):
     # scan dir
     if filter_file:  # use sequences specified by the filter_file
         with open(filter_file, 'r') as f:
@@ -99,9 +99,9 @@ def create_lmdb_with_splits(dataset, raw_dir, lmdb_dir, filter_file='', split_ra
     print(f'>> Finished lmdb generation for {dataset}')
 
 
-def create_lmdb(dataset, raw_dir, lmdb_dir, filter_file=''):
-    assert dataset in ('VimeoTecoGAN', 'REDS'), f'Unknown Dataset: {dataset}'
-    print(f'>> Start to create lmdb for {dataset}')
+def create_lmdb(dataset, raw_dir, lmdb_dir, filter_file='', downsample=False):
+    # assert dataset in ('VimeoTecoGAN', 'REDS'), f'Unknown Dataset: {dataset}'
+    # print(f'>> Start to create lmdb for {dataset}')
 
     # scan dir
     if filter_file:  # use sequences specified by the filter_file
@@ -118,7 +118,10 @@ def create_lmdb(dataset, raw_dir, lmdb_dir, filter_file=''):
     for seq_idx in seq_idx_lst:
         frm_path_lst = sorted(glob.glob(osp.join(raw_dir, seq_idx, '*.png')))
         frm = cv2.imread(frm_path_lst[0], cv2.IMREAD_UNCHANGED)
-        nbytes_per_frm = frm.nbytes
+        if downsample:
+            nbytes_per_frm = frm.nbytes / 16
+        else:
+            nbytes_per_frm = frm.nbytes
         nbytes += len(frm_path_lst) * nbytes_per_frm
     alloc_size = round(2 * nbytes)
     print(f'>> Space required for lmdb generation: {alloc_size / (1 << 30):.2f} GB')
@@ -141,6 +144,8 @@ def create_lmdb(dataset, raw_dir, lmdb_dir, filter_file=''):
         # read frames
         for i in range(n_frm):
             frm = cv2.imread(frm_path_lst[i], cv2.IMREAD_UNCHANGED)
+            if downsample:
+                frm = cv2.resize(frm, None, fx=.25, fy=.25, interpolation=cv2.INTER_CUBIC)
             frm = np.ascontiguousarray(frm[..., ::-1])  # hwc|rgb|uint8
 
             h, w, c = frm.shape
@@ -211,9 +216,9 @@ if __name__ == '__main__':
     # parse args
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default="Vimeo90K")
-    parser.add_argument('--raw_dir', type=str, default="data/Vimeo90K/raw/train",
+    parser.add_argument('--raw_dir', type=str, default="data/Vimeo90K/raw/val",
                         help='Dir to the raw data')
-    parser.add_argument('--lmdb_dir', type=str, default="data/Vimeo90K/lmdb/V90K_train_GT.lmdb",
+    parser.add_argument('--lmdb_dir', type=str, default="data/Vimeo90K/lmdb/V90K_val_GT.lmdb",
                         help='Dir to the lmdb data')
     parser.add_argument('--filter_file', type=str, default='',
                         help='File used to select sequences')
@@ -221,10 +226,11 @@ if __name__ == '__main__':
                         help='Provided as "h_w". Split ratio for saved clips: (h_orig // h) X (w_orig // w)')
     parser.add_argument('--degradation', type=str, default=None, help="Degradation type")
     parser.add_argument('--split', action='store_true', help="Enable split mode if this flag is present")
+    parser.add_argument('--downsample', action='store_true', help="whether to downsample the images.")
     args = parser.parse_args()
 
     # run
     if args.split:
-        create_lmdb_with_splits(args.dataset, args.raw_dir, args.lmdb_dir, args.filter_file, args.split_ratio)
+        create_lmdb_with_splits(args.dataset, args.raw_dir, args.lmdb_dir, args.filter_file, args.split_ratio, args.downsample)
     else:
-        create_lmdb(args.dataset, args.raw_dir, args.lmdb_dir, args.filter_file)
+        create_lmdb(args.dataset, args.raw_dir, args.lmdb_dir, args.filter_file, args.downsample)

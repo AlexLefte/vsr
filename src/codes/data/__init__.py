@@ -31,13 +31,13 @@ def create_dataloader(opt, dataset_idx='train'):
     if dataset_idx == 'train':
         if degradation_type == 'BI':
             # create dataset
-            dataset = PairedLMDBDatasetV2(
-                data_opt,
-                scale=opt['scale'],
-                tempo_extent=opt['train']['tempo_extent'],
-                moving_first_frame=opt['train'].get('moving_first_frame', False),
-                moving_factor=opt['train'].get('moving_factor', 1.0),
-                train=True)
+            # dataset = PairedLMDBDatasetV2(
+            dataset = PairedLMDBDataset(data_opt,
+                                        scale=opt['scale'],
+                                        tempo_extent=opt['train']['tempo_extent'],
+                                        moving_first_frame=opt['train'].get('moving_first_frame', False),
+                                        moving_factor=opt['train'].get('moving_factor', 1.0),
+                                        train=True)
 
         elif degradation_type == 'BD':
             # enlarge crop size to incorporate border size
@@ -69,10 +69,11 @@ def create_dataloader(opt, dataset_idx='train'):
         # create data loader
         gt_path = data_opt['gt_seq_dir']
         if is_lmdb(gt_path):
-            dataset = PairedLMDBDatasetV2(data_opt, 
-                                      scale=opt['scale'],
-                                      tempo_extent=opt['test']['tempo_extent'],
-                                      train=False)
+            # dataset = PairedLMDBDatasetV2(data_opt, 
+            dataset = PairedLMDBDataset(data_opt, 
+                                        scale=opt['scale'],
+                                        tempo_extent=opt['test']['tempo_extent'],
+                                        train=False)
         elif os.path.isdir(gt_path):
             dataset = PairedFolderDataset(data_opt, scale=opt['scale'])
         else:
