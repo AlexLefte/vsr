@@ -120,6 +120,7 @@ def train(opt):
 
                     # infer and compute metrics for each sequence
                     print(f'Running validation on {ds_name}...')
+                    start_infer = time.time()
                     for data in tqdm(test_loader):
                         # fetch data
                         lr_seq = data['lr'][0]
@@ -149,10 +150,12 @@ def train(opt):
                             opt['dataset'][dataset_idx]['gt_seq_dir'], seq_idx)
                         metric_calculator.compute_sequence_metrics(
                             seq_idx, '', '', true_seq=gt_seq, pred_seq=hr_seq)
+                    stop_infer = time.time()
+                    print(f'Elapsed validation time: {stop_infer - start_infer}s.')
 
                     # print directly and log to tb
                     print(f"Epoch {epoch+1}. Iteration {iter}.")
-                    metric_calculator.display_results(iter, tb_logger)
+                    metric_calculator.display_results(iter, tb_logger, ds_name)
                     
                     # save/print metrics
                     if opt['test'].get('save_json'):

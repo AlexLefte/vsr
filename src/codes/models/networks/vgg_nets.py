@@ -4,7 +4,7 @@ import torchvision
 
 
 class VGGFeatureExtractor(nn.Module):
-    def __init__(self, feature_indexs=(8, 17, 26, 35)):
+    def __init__(self, feature_indices=(8, 17, 26, 35)):
         super(VGGFeatureExtractor, self).__init__()
 
         # init feature layers
@@ -16,7 +16,7 @@ class VGGFeatureExtractor(nn.Module):
         # 1. default feature layers are 8(conv2_2), 17(conv3_4), 26(conv4_4),
         #    35(conv5_4)
         # 2. features are extracted after ReLU activation
-        self.feature_indexs = sorted(feature_indexs)
+        self.feature_indices = sorted(feature_indices)
 
         # register normalization params
         mean = torch.FloatTensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)  # RGB
@@ -31,7 +31,7 @@ class VGGFeatureExtractor(nn.Module):
         feature_list = []
         for i in range(len(self.features)):
             out = self.features[i](out)
-            if i in self.feature_indexs:
+            if i in self.feature_indices:
                 # clone to prevent overlapping by inplaced ReLU
                 feature_list.append(out.clone())
 

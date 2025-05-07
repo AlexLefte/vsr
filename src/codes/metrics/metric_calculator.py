@@ -6,7 +6,7 @@ from collections import OrderedDict
 import numpy as np
 import cv2
 import torch
-
+from skimage.metrics import structural_similarity as ssim
 from utils import base_utils, data_utils, net_utils
 from .LPIPS.models.dist_model import DistModel
 from torchvision.transforms.functional import normalize
@@ -30,6 +30,7 @@ class MetricCalculator():
         self.gt_bit_depth = opt['gt_bit_depth']
         self.psnr_mult = 1
         self.psnr_colorspace = ''
+        self.ssim_mult = 1
         self.lpips_mult = 1
         self.dm = None
         self.tof_mult = 1
@@ -41,6 +42,9 @@ class MetricCalculator():
             if metric_type.lower() == 'psnr':
                 self.psnr_mult = cfg.get('mult', self.psnr_mult)
                 self.psnr_colorspace = cfg['colorspace']
+
+            if metric_type.lower() == 'ssim':
+                self.ssim_mult = cfg.get('mult', self.ssim_mult)
 
             if metric_type.lower() == 'lpips':
                 self.lpips_mult = cfg.get('mult', self.lpips_mult)
@@ -81,7 +85,7 @@ class MetricCalculator():
 
         return metric_avg_dict
 
-    def display_results(self, iter=0, tb_logger=None):
+    def display_results(self, iter=0, tb_logger=None, ds_name=None):
         logger = base_utils.get_logger('base')
 
         # per sequence results
@@ -104,7 +108,10 @@ class MetricCalculator():
         # save results in TensorBoard
         if tb_logger is not None:
             for key, value in metric_avg_dict.items():
+                if ds_name is None:
                     tb_logger.add_scalar(f'val/{key}', value, iter)
+                else:
+                    tb_logger.add_scalar(f'val/{ds_name}/{key}', value, iter)
 
     def save_results(self, model_idx, save_path, override=False, iter=0, tb_logger=None):
         # load previous results if existed
@@ -207,6 +214,10 @@ class MetricCalculator():
                 PSNR = self.compute_PSNR()
                 metric_dict['PSNR'].append(PSNR)
 
+            elif metric_type == 'SSIM':
+                SSIM = self.compute_SSIM()
+                metric_dict['SSIM'].append(SSIM)
+
             elif metric_type == 'LPIPS':
                 LPIPS = self.compute_LPIPS()[0, 0, 0, 0].cpu().numpy()
                 metric_dict['LPIPS'].append(LPIPS)
@@ -234,6 +245,19 @@ class MetricCalculator():
 
         PSNR = 20 * np.log10((2 ** self.gt_bit_depth - 1) / RMSE)
         return PSNR
+
+    def compute_SSIM(self):
+        # convert to ycbcr, and keep the y channel
+        true_img = data_utils.rgb_to_ycbcr(self.true_img_cur)[..., 0]
+        pred_img = data_utils.rgb_to_ycbcr(self.pred_img_cur)[..., 0]
+
+        # Compute SSIM on Y channel
+        ssim_val = ssim(
+            true_img, pred_img,
+            data_range=(2 ** self.gt_bit_depth - 1),
+            multichannel=False
+        )
+        return ssim_val
 
     def compute_LPIPS(self):
         true_img = np.ascontiguousarray(self.true_img_cur)

@@ -54,13 +54,6 @@ class PairedLMDBDatasetV2(BaseDataset):
             self.gt_lr_keys = list(filter(
                 lambda x: self.parse_lmdb_key(x[0])[0] in sel_seqs,
                 self.gt_lr_keys))
-            
-        ## DELETE: split tecogan dataset
-        if self.train:
-            self.gt_lr_keys = self.gt_lr_keys[:120]
-        else:
-            self.gt_lr_keys = self.gt_lr_keys[120:]
-        #####
 
         # register parameters
         self.gt_env = None
@@ -213,6 +206,20 @@ class PairedLMDBDataset(BaseDataset):
         self.check_info(gt_keys, lr_keys)
         self.gt_lr_keys = list(zip(gt_keys, lr_keys))
 
+        # Keep only the first frame of each clip
+        seen_clips = set()
+        self.gt_lr_keys = []
+        for gt_key, lr_key in zip(gt_keys, lr_keys):
+            clip_name = "_".join(gt_key.split('_')[:3])  # Extract ClipNumber
+            if clip_name not in seen_clips:
+                self.gt_lr_keys.append((gt_key, lr_key))
+                seen_clips.add(clip_name)
+
+        ## DELETE!!!!
+        if not self.train:
+            self.gt_lr_keys = sorted(self.gt_lr_keys)
+            self.gt_lr_keys = self.gt_lr_keys[:1000]
+
         # use partial videos
         if self.filter_file is not None:
             with open(self.filter_file, 'r') as f:
@@ -236,16 +243,19 @@ class PairedLMDBDataset(BaseDataset):
 
         # parse info
         gt_key, lr_key = self.gt_lr_keys[item]
-        idx, (tot_frm, gt_h, gt_w), cur_frm = self.parse_lmdb_key(gt_key)
+        idx, (tot_frm, gt_h, gt_w), _ = self.parse_lmdb_key(gt_key)
         _, (_, lr_h, lr_w), _ = self.parse_lmdb_key(lr_key)
 
         c = 3 if self.data_type.lower() == 'rgb' else 1
         s = self.scale
         assert (gt_h == lr_h * s) and (gt_w == lr_w * s)
 
+        # Pick a random frame
+        cur_frm = random.randint(0, tot_frm - self.tempo_extent) if self.train else 0
+
         # get frames
         gt_frms, lr_frms = [], []
-        if self.moving_first_frame and (random.uniform(0, 1) > self.moving_factor):
+        if self.train and self.moving_first_frame and (random.uniform(0, 1) > self.moving_factor):
             # load the first gt&lr frame
             gt_frm = self.read_lmdb_frame(
                 self.gt_env, gt_key, size=(gt_h, gt_w, c))
@@ -302,19 +312,18 @@ class PairedLMDBDataset(BaseDataset):
         gt_frms = np.stack(gt_frms)  # tchw|rgb|uint8
         lr_frms = np.stack(lr_frms)
 
-        # crop randomly
-        gt_pats, lr_pats = self.crop_sequence(gt_frms, lr_frms)
-
-        # augment patches
-        gt_pats, lr_pats = augment_sequence(gt_pats, lr_pats)
+        # Crop & Augment
+        if self.train:
+            gt_frms, lr_frms = self.crop_sequence(gt_frms, lr_frms)
+            gt_frms, lr_frms = augment_sequence(gt_frms, lr_frms)
 
         # convert to tensor and normalize to range [0, 1]
-        gt_tsr = torch.FloatTensor(np.ascontiguousarray(gt_pats)) / 255.0
-        lr_tsr = torch.FloatTensor(np.ascontiguousarray(lr_pats)) / 255.0
+        gt_tsr = torch.FloatTensor(np.ascontiguousarray(gt_frms)) / 255.0
+        lr_tsr = torch.FloatTensor(np.ascontiguousarray(lr_frms)) / 255.0
 
         # tchw|rgb|float32
-        return {'gt': gt_tsr, 'lr': lr_tsr}
-
+        return {'gt': gt_tsr, 'lr': lr_tsr, 'seq_idx': gt_key}
+    
     def crop_sequence(self, gt_frms, lr_frms):
         gt_csz = self.gt_crop_size
         lr_csz = self.gt_crop_size // self.scale

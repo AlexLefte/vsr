@@ -7,11 +7,11 @@ import argparse
 def move_files(txt_file, destination_folder):
     with open(txt_file, 'r') as f:
         for line in f:
-            sequence = line.strip()  # Citește secvența (de exemplu 00001/0001)
+            sequence = line.strip()  # Read the sequence (e.g. 00001/0001)
             sequence_folder = os.path.join(sequence_path, sequence)
             
-            if os.path.isdir(sequence_folder):  # Verifică dacă directorul există
-                # Muta întregul director în folderul de destinație
+            if os.path.isdir(sequence_folder):  # Check seq folder
+                # Move to destination
                 shutil.move(sequence_folder, os.path.join(destination_folder, sequence))
                 print(f"Moved {sequence_folder} to {destination_folder}")
             else:

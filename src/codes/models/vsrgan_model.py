@@ -98,7 +98,9 @@ class VSRGANModel(VSRModel):
             self.opt['train'].get('feature_crit'))
         if self.feat_crit is not None:  # load feature extractor
             feature_layers = self.opt['train']['feature_crit'].get(
-                'feature_layers', [8, 17, 26, 35])
+                'feature_layers', ['conv1_2', 'conv2_2', 'conv3_4', 'conv4_4', 'conv5_4'])
+            self.feature_weights = self.opt['train']['feature_crit'].get(
+                'feature_weights', [0.1, 0.1, 1, 1, 1])
             self.net_F = VGGFeatureExtractor(feature_layers).to(self.device)
 
         # flow & mask criterion
@@ -258,8 +260,10 @@ class VSRGANModel(VSRModel):
             hr_feat_lst = self.net_F(hr_merge)
             gt_feat_lst = self.net_F(gt_merge)
             loss_feat_G = 0
+            i = 0
             for hr_feat, gt_feat in zip(hr_feat_lst, gt_feat_lst):
-                loss_feat_G += self.feat_crit(hr_feat, gt_feat.detach())
+                loss_feat_G += self.feat_crit(hr_feat, gt_feat.detach()) * self.feature_weights[i]
+                i += 1
 
             feat_w = self.opt['train']['feature_crit'].get('weight', 1)
             loss_feat_G = feat_w * loss_feat_G

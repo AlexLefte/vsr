@@ -159,7 +159,10 @@ test:
 # metric configs
 metric:
   PSNR:
-    colorspace: rgb
+    colorspace: y
+    mult: 1.0
+  
+  SSIM:
     mult: 1.0
 
   LPIPS:
@@ -172,7 +175,6 @@ metric:
 
   # tOF:
   #   mult: 1.0
-
 
 # logger configs
 logger:
