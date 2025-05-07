@@ -1,5 +1,5 @@
 import torch
-import torch.nn
+import torch.nn as nn
 
 class TSAFusion(nn.Module):
     """Temporal Spatial Attention (TSA) fusion module.

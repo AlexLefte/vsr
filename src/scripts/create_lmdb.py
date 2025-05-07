@@ -41,7 +41,7 @@ def create_lmdb_with_splits(dataset, raw_dir, lmdb_dir, filter_file='', split_ra
         # frm = cv2.resize(frm, (w // 4, h // 4), interpolation=cv2.INTER_CUBIC)
         nbytes_per_frm = frm.nbytes
         nbytes += len(frm_path_lst) * nbytes_per_frm
-    alloc_size = round(2 * nbytes)
+    alloc_size = round(1.2 * nbytes)
     print(f'>> Space required for lmdb generation: {alloc_size / (1 << 30):.2f} GB')
 
     # create lmdb environment

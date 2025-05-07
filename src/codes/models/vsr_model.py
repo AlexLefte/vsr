@@ -488,10 +488,17 @@ class VSRModel(BaseModel):
 
         # load network
         load_path_G = self.opt['model']['generator'].get('load_path')
+        load_path_reconstr = self.opt['model']['generator'].get('load_path')
         if load_path_G is not None:
             self.load_network(self.net_G, load_path_G)
             if self.verbose:
-                self.logger.info('Load generator from: {}'.format(load_path_G))
+                self.logger.info('Loaded generator from: {}'.format(load_path_G))
+        elif load_path_reconstr is not None:
+            # Load the reconstruction block
+            self.load_reconstruction_block(self.net_G, load_path_reconstr)
+            if self.verbose:
+                self.logger.info('Loaded reconstruction module from: {}'.format(load_path_reconstr))
+
 
     def config_training(self):
         # set criterion
@@ -524,7 +531,9 @@ class VSRModel(BaseModel):
             self.opt['train'].get('feature_crit'))
         if self.feat_crit is not None:  # load feature extractor
             feature_layers = self.opt['train']['feature_crit'].get(
-                'feature_layers', [8, 17, 26, 35])
+                'feature_layers', ['conv1_2', 'conv2_2', 'conv3_4', 'conv4_4', 'conv5_4'])
+            self.feature_weights = self.opt['train']['feature_crit'].get(
+                'feature_weights', [0.1, 0.1, 1, 1, 1])
             self.net_F = VGGFeatureExtractor(feature_layers).to(self.device)
 
         # flow & mask criterion
@@ -588,13 +597,15 @@ class VSRModel(BaseModel):
             hr_feat_lst = self.net_F(hr_merge)
             gt_feat_lst = self.net_F(gt_merge)
             loss_feat_G = 0
+            i = 0
             for hr_feat, gt_feat in zip(hr_feat_lst, gt_feat_lst):
-                loss_feat_G += self.feat_crit(hr_feat, gt_feat.detach())
+                loss_feat_G += self.feat_crit(hr_feat, gt_feat.detach()) * self.feature_weights[i]
+                i += 1
 
             feat_w = self.opt['train']['feature_crit'].get('weight', 1)
             loss_feat_G = feat_w * loss_feat_G
             loss_G += loss_feat_G
-            self.log_dict['l_feat_G'] = loss_feat_G.item()
+            self.log_dict['l_feat_G'] = loss_feat_G
 
         # ping-pong (pp) loss
         if self.pp_crit is not None:

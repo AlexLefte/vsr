@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 
 
@@ -28,7 +27,7 @@ class SrResNet(nn.Module):
 
         # input conv. - low frequency information extraction layer
         self.conv_in = nn.Sequential(
-            nn.Conv2d((scale**2 + 1) * in_nc, nf, 3, 1, 1, bias=True),
+            nn.Conv2d(in_nc, nf, 3, 1, 1, bias=True),
             nn.ReLU(inplace=True))
 
         # residual blocks - high frequency information extraction
@@ -41,13 +40,15 @@ class SrResNet(nn.Module):
                 nn.ReLU(inplace=True),
                 nn.ConvTranspose2d(nf, nf, 3, 2, 1, output_padding=1, bias=True),
                 nn.ReLU(inplace=True))
+            conv_out_ch =  nf
         else:
             self.conv_up = nn.Sequential(
-                nn.PixelShuffle(4),
+                nn.PixelShuffle(scale),
                 nn.ReLU(inplace=True))
+            conv_out_ch =  scale
 
         # output conv.
-        self.conv_out = nn.Conv2d(4, out_nc, 3, 1, 1, bias=True)
+        self.conv_out = nn.Conv2d(conv_out_ch, out_nc, 3, 1, 1, bias=True)
 
         # upsampling function
         self.upsample_func = upsample_func

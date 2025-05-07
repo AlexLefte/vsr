@@ -88,6 +88,35 @@ class BaseModel():
     def load_network(self, net, load_path):
         net.load_state_dict(torch.load(load_path))
 
+    def load_reconstruction_block(self, net, reconstruction_path):
+        # Load the pretrained block:
+        pretrained_dict = torch.load(reconstruction_path)
+
+        # Get the current model's state_dict
+        model_dict = net.state_dict()
+
+        # Check if conv_in weights are compatible
+        conv_in_key = 'conv_in.0.weight'  # The first conv layer in conv_in
+        if conv_in_key in pretrained_dict:
+            pretrained_conv_in = pretrained_dict[conv_in_key]
+            current_conv_in = model_dict[conv_in_key]
+
+            # Check shape compatibility
+            if pretrained_conv_in.shape != net.reconstruction_channels:
+                print(f'[WARNING] conv_in shape mismatch: {pretrained_conv_in.shape} vs {current_conv_in.shape}')
+                print('-> Skipping loading of conv_in weights.')
+                # Remove all keys from conv_in
+                pretrained_dict = {k: v for k, v in pretrained_dict.items() if not k.startswith('conv_in.')}
+        else:
+            print('[WARNING] conv_in weights not found in checkpoint.')
+
+        # Filter the pretrained dict to match keys in the current model
+        filtered_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+
+        # Update model state and load
+        model_dict.update(filtered_dict)
+        net.load_state_dict(model_dict)
+
     def pad_sequence(self, lr_data):
         """
         Parameters:

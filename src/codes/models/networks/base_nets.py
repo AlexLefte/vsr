@@ -25,7 +25,7 @@ class BaseSequenceGenerator(nn.Module):
         """ infer for a whole sequence (for inference)
         """
         pass
-
+    
 
 class BaseSequenceDiscriminator(nn.Module):
     def __init__(self):

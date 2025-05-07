@@ -4,7 +4,6 @@ from torch.nn import functional as F
 import torchvision
 from torch.nn.modules.utils import _pair
 
-
 class DCNv2(nn.Module):
     """Modulated deformable conv for deformable alignment.
 
@@ -34,6 +33,7 @@ class DCNv2(nn.Module):
             self.deformable_groups * 3 * self.kernel_size[0] * self.kernel_size[1],
             kernel_size=self.kernel_size,
             stride=self.stride,
+
             padding=self.padding,
             dilation=self.dilation,
             bias=True

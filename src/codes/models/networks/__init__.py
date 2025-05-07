@@ -22,23 +22,20 @@ def define_generator(opt):
             nb=net_G_opt['nb'],
             mode=opt['dataset']['degradation']['type'],
             scale=opt['scale'])
+        
     elif net_G_opt['name'].lower() == 'edvr':
         from .edvr_net import EDVRNet
         net_G = EDVRNet(
-            in_channels=opt['model']['generator'].get('in_channels', 3),
-            out_channels=opt['model']['generator'].get('out_channels', 3),
-            num_feat=opt['model']['generator'].get('num_feat', 64),
-            num_frames=opt['model']['generator'].get('num_frame', 5),
-            deformable_groups=opt['model']['generator'].get('deformable_groups', 8),
-            num_extract_block=opt['model']['generator'].get('num_extract_block', 5),
-            num_reconstruct_block=opt['model']['generator'].get('num_reconstruct_block', 10),
-            res_frame_idx=opt['model']['generator'].get('res_frame_idx', None),
-            hr_in=opt['model']['generator'].get('hr_in', False),
-            with_predeblur=opt['model']['generator'].get('with_predeblur', False),
-            with_tsa=opt['model']['generator'].get('with_tsa', True),
-            upsample_func=opt['model']['generator'].get('upsample_func', 'bicubic')
-        )
-
+            in_channels=net_G_opt['in_nc'],
+            out_channels=net_G_opt['out_nc'],
+            num_feat=net_G_opt['nf'],
+            num_frames=net_G_opt.get('num_frames', 5),
+            deformable_groups=net_G_opt.get('def_groups', 8),
+            num_extract_block=net_G_opt.get('num_extract', 5),
+            num_reconstruct_block=net_G_opt['nb'],
+            res_frame_idx=net_G_opt.get('res_frame_idx', None),
+            with_tsa=net_G_opt['with_tsa'],
+            upsample_func=net_G_opt['upsample_func'])
 
     elif net_G_opt['name'].lower() == 'espnet':  # ESPCN generator
         from .espcn_nets import ESPNet

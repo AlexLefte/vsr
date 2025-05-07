@@ -17,17 +17,19 @@ class FRNet(BaseSequenceGenerator):
     """
 
     def __init__(self, in_nc=3, out_nc=3, nf=64, nb=16, mode='bilinear',
-                 scale=4):
+                 scale=4, transp_conv=False):
         super(FRNet, self).__init__()
 
         self.scale = scale
+        self.reconstruction_channels = (scale**2 + 1) * in_nc  # SR input channels
 
         # get upsampling function according to the degradation mode
         self.upsample_func = get_upsampling_func(self.scale, mode)
 
         # define fnet & srnet
         self.fnet = FNet(in_nc)
-        self.srnet = SrResNet(in_nc, out_nc, nf, nb, self.upsample_func)
+        self.srnet = SrResNet(self.reconstruction_channels, out_nc, nf, 
+                              nb, self.upsample_func, transp_conv=transp_conv)
 
     def generate_dummy_input(self, lr_size):
         c, lr_h, lr_w = lr_size
@@ -66,12 +68,14 @@ class FRNet(BaseSequenceGenerator):
 
         # warp hr_prev
         hr_prev_warp = backward_warp(hr_prev, hr_flow)
+        hr_prev_aligned = space_to_depth(hr_prev_warp, self.scale)
         # torch.cuda.synchronize()
         # end = time()
 
         # compute hr_curr
         #  start1 = time()
-        hr_curr = self.srnet(lr_curr, space_to_depth(hr_prev_warp, self.scale))
+
+        hr_curr = self.srnet(torch.cat([lr_curr, hr_prev_aligned], dim=1))
         # torch.cuda.synchronize()
         # end1 = time()
 
@@ -98,10 +102,10 @@ class FRNet(BaseSequenceGenerator):
 
         # compute the first hr data
         hr_data = []
-        hr_prev = self.srnet(
-            lr_data[:, 0, ...],
-            torch.zeros(n, (self.scale**2)*c, lr_h, lr_w, dtype=torch.float32,
-                        device=lr_data.device))
+        sr_input = torch.cat([lr_data[:, 0, ...],
+                    torch.zeros(n, (self.scale**2)*c, lr_h, lr_w, dtype=torch.float32,
+                        device=lr_data.device)], dim=1)
+        hr_prev = self.srnet(sr_input)
         hr_data.append(hr_prev)
 
         # compute the remaining hr data
@@ -110,9 +114,9 @@ class FRNet(BaseSequenceGenerator):
             hr_prev_warp = backward_warp(hr_prev, hr_flow[:, i - 1, ...])
 
             # compute hr_curr
-            hr_curr = self.srnet(
-                lr_data[:, i, ...],
-                space_to_depth(hr_prev_warp, self.scale))
+            sr_input = torch.cat([lr_data[:, i, ...],
+                                  space_to_depth(hr_prev_warp, self.scale)], dim=1)
+            hr_curr = self.srnet(sr_input)
 
             # save and update
             hr_data.append(hr_curr)
