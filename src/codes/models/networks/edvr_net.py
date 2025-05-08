@@ -80,7 +80,6 @@ class EDVRNet(nn.Module):
                  num_extract_block=5,
                  num_reconstruct_block=10,
                  res_frame_idx=None,
-                 hr_in=False,
                  with_tsa=True,
                  upsample_func='bicubic'):
         super(EDVRNet, self).__init__()
@@ -88,7 +87,6 @@ class EDVRNet(nn.Module):
             self.res_frame_idx = num_frames // 2  # Pick middle frame as default
         else:
             self.res_frame_idx = res_frame_idx
-        self.hr_in = hr_in
         self.with_tsa = with_tsa
 
         # Pyramid feature extraction
