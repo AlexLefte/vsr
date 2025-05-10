@@ -54,7 +54,7 @@ class SrResNet(nn.Module):
         self.upsample_func = upsample_func
         self.ref_idx = ref_idx
 
-    def forward(self, x):
+    def forward(self, x, lr=None):
         """ x: input data
         """
         # Shallow feature extraction
@@ -68,9 +68,11 @@ class SrResNet(nn.Module):
         out = self.conv_out(out)
 
         # Upsample LR and add to the final output
-        if self.upsample_func is not None:
+        if self.upsample_func is not None and lr is not None:
             if len(x.shape) == 5:
-                out += self.upsample_func(x[:, self.ref_idx, :, :, :].squeeze(1))
+                out += self.upsample_func(lr[:, self.ref_idx, :, :, :].squeeze(1))
+            elif lr is not None:
+                out += self.upsample_func(lr)
             else:
                 out += self.upsample_func(x)
 

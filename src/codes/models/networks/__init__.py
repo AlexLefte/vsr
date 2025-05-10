@@ -31,8 +31,7 @@ def define_generator(opt):
             out_nc=net_G_opt['out_nc'],
             nf=net_G_opt['nf'],
             nb=net_G_opt['nb'],
-            mode=opt['dataset']['degradation']['type'],
-            scale=opt['scale'])  
+            mode=net_G_opt['upsample_func'],
     elif net_G_opt['name'].lower() == 'edvr':
         from .edvr_net import EDVRNet
         net_G = EDVRNet(

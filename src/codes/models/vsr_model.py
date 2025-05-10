@@ -487,7 +487,7 @@ class VSRModel(BaseModel):
 
         # load network
         load_path_G = self.opt['model']['generator'].get('load_path')
-        load_path_reconstr = self.opt['model']['generator'].get('load_path')
+        load_path_reconstr = self.opt['model']['generator'].get('reconstruction_path')
         if load_path_G is not None:
             self.load_network(self.net_G, load_path_G)
             if self.verbose:

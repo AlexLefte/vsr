@@ -213,7 +213,7 @@ def test(opt):
             test_loader = create_dataloader(opt, dataset_idx=dataset_idx)
 
             # infer and store results for each sequence
-            for i, data in enumerate(test_loader):
+            for i, data in tqdm(enumerate(test_loader)):
                 # fetch data
                 lr_data = data['lr'][0]
                 seq_idx = data['seq_idx'][0]

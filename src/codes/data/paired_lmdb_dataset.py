@@ -285,8 +285,9 @@ class PairedLMDBDataset(BaseDataset):
                 gt_frms.append(gt_frm[
                     :, gt_top: gt_top + c_h * s, gt_left: gt_left + c_w * s].copy())
         else:
+            frames_to_read = self.tempo_extent if self.train else tot_frm
             # read frames
-            for i in range(cur_frm, cur_frm + self.tempo_extent):
+            for i in range(cur_frm, cur_frm + frames_to_read):
                 if i >= tot_frm:
                     # reflect temporal paddding, e.g., (0,1,2) -> (0,1,2,1,0)
                     gt_key = '{}_{}x{}x{}_{:04d}'.format(

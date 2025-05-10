@@ -90,6 +90,7 @@ class BaseModel():
 
     def load_reconstruction_block(self, net, reconstruction_path):
         # Load the pretrained block:
+        print(f"Loading reconstruction module: {reconstruction_path}.")
         pretrained_dict = torch.load(reconstruction_path)
 
         # Get the current model's state_dict
@@ -99,9 +100,10 @@ class BaseModel():
         conv_in_key = 'conv_in.0.weight'  # The first conv layer in conv_in
         if conv_in_key in pretrained_dict:
             pretrained_conv_in = pretrained_dict[conv_in_key]
-            current_conv_in = model_dict[conv_in_key]
-
+            current_conv_in = model_dict[f'srnet.{conv_in_key}']
+            
             # Check shape compatibility
+            print("Checking reconstruction module compatibility...")
             if pretrained_conv_in.shape != net.reconstruction_channels:
                 print(f'[WARNING] conv_in shape mismatch: {pretrained_conv_in.shape} vs {current_conv_in.shape}')
                 print('-> Skipping loading of conv_in weights.')

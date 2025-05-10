@@ -12,22 +12,22 @@ dataset:
 
   train:
     name: Vimeo90K_train
-    gt_seq_dir: C:/Users/aleft/Documents/vsr_datasets/Vimeo90K/GT/train
-    lr_seq_dir: C:/Users/aleft/Documents/vsr_datasets/Vimeo90K/LR/train
+    gt_seq_dir: datasets/Vimeo90K/lmdb/V90K_train_GT.lmdb
+    lr_seq_dir: datasets/Vimeo90K/lmdb/V90K_train_LR_BI.lmdb
     # gt_seq_dir: ../data/RPO_UHD_16.lmdb   # PairedLmdbDataset
     # lr_seq_dir: ../data/RPO_DVD_16.lmdb   # PairedFolderDataset
     filter_file: ~
     data_type: rgb
-    gt_crop_size: 256
-    batch_size: 16
+    gt_crop_size: 192
+    batch_size: 8
     num_workers: 0
     pin_memory: true
-    clip_length: 1
+    clip_length: 7
 
   test:
     name: Vimeo90K_val
-    gt_seq_dir: C:/Users/aleft/Documents/vsr_datasets/Vimeo90K/GT/val 
-    lr_seq_dir: C:/Users/aleft/Documents/vsr_datasets/Vimeo90K/LR/val
+    gt_seq_dir: datasets/Vimeo90K/lmdb/V90K_val_GT.lmdb
+    lr_seq_dir: datasets/Vimeo90K/lmdb/V90K_val_LR_BI.lmdb
     # gt_seq_dir: ../data/transformers_light_UHD.lmdb  # PairedLmdbDataset
     # lr_seq_dir: ../data/transformers_light_DVD.lmdb
     # gt_seq_dir: ../data/Transformers_light/UHD  # PairedFolderDataset
@@ -36,7 +36,7 @@ dataset:
     data_type: rgb
     num_workers: 0
     pin_memory: true
-    clip_length: 1
+    clip_length: 7
 
   # test_vid4:
   #   name: Vid4
@@ -54,18 +54,19 @@ dataset:
 
 # model configs
 model:
-  name: ISR
+  name: FRVSR
 
   generator:
-    name: SrResNet  # efficient GAN-based generator
+    name: EGVSR # efficient GAN-based generator
     in_nc: 3
     out_nc: 3
     nf: 64
-    nb: 12
-    upsample_func: bicubic
+    nb: 16
+    upsample_func: bilinear
     transp_conv: False
     load_path: ~
-    reconstruction_path: ~
+    # reconstruction_path: ~
+    reconstruction_path: experiments/srresnet_16/train/ckpt/G_iter170000.pth
     # nb: 10
     # load_path: pretrained_models/EGVSR_iter420000.pth
 
@@ -78,16 +79,16 @@ model:
 
 # training configs
 train:
-  tempo_extent: 1
+  tempo_extent: 7
   start_iter: 0
-  total_iter: 200000
+  total_iter: 100000
 
   # configs for generator
   generator:
     lr: !!float 5e-5
     lr_schedule:
       type: MultiStepLR
-      milestones: [50000, 100000, 150000]
+      milestones: [50000]
       gamma: 0.5
     beta1: 0.9
     beta2: 0.999
@@ -113,10 +114,10 @@ train:
     weight: 1
     reduction: mean
 
-  # warping_crit:
-  #   type: CB
-  #   weight: 1
-  #   reduction: mean
+  warping_crit:
+    type: CB
+    weight: 1
+    reduction: mean
 
   feature_crit:
     type: L1

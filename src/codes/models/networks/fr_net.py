@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from flow_net import FNet
-from srres_net import SrResNet
+from models.networks.flow_net import FNet
+from models.networks.srres_net import SrResNet
 from time import time
 from models.networks.base_nets import BaseSequenceGenerator
 from utils.net_utils import space_to_depth, backward_warp, get_upsampling_func
@@ -74,8 +74,9 @@ class FRNet(BaseSequenceGenerator):
 
         # compute hr_curr
         #  start1 = time()
-
-        hr_curr = self.srnet(torch.cat([lr_curr, hr_prev_aligned], dim=1))
+        
+        sr_input = torch.cat([lr_curr, hr_prev_aligned], dim=1)
+        hr_curr = self.srnet(sr_input, lr_curr)
         # torch.cuda.synchronize()
         # end1 = time()
 
@@ -94,7 +95,7 @@ class FRNet(BaseSequenceGenerator):
         # calculate optical flows
         lr_prev = lr_data[:, :-1, ...].reshape(n * (t - 1), c, lr_h, lr_w)
         lr_curr = lr_data[:, 1:, ...].reshape(n * (t - 1), c, lr_h, lr_w)
-        lr_flow = self.fnet(torch.cat((lr_prev, lr_curr), dim=1))
+        lr_flow = self.fnet(lr_curr, lr_prev)
 
         # upsample lr flows
         hr_flow = self.scale * self.upsample_func(lr_flow)
@@ -105,7 +106,7 @@ class FRNet(BaseSequenceGenerator):
         sr_input = torch.cat([lr_data[:, 0, ...],
                     torch.zeros(n, (self.scale**2)*c, lr_h, lr_w, dtype=torch.float32,
                         device=lr_data.device)], dim=1)
-        hr_prev = self.srnet(sr_input)
+        hr_prev = self.srnet(sr_input, lr_data[:, 0, ...])
         hr_data.append(hr_prev)
 
         # compute the remaining hr data
@@ -116,7 +117,7 @@ class FRNet(BaseSequenceGenerator):
             # compute hr_curr
             sr_input = torch.cat([lr_data[:, i, ...],
                                   space_to_depth(hr_prev_warp, self.scale)], dim=1)
-            hr_curr = self.srnet(sr_input)
+            hr_curr = self.srnet(sr_input, lr_data[:, i, ...])
 
             # save and update
             hr_data.append(hr_curr)
