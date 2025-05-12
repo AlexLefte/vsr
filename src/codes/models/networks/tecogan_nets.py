@@ -8,7 +8,7 @@ from utils.net_utils import space_to_depth, backward_warp, get_upsampling_func
 from utils.net_utils import initialize_weights
 from utils.data_utils import float32_to_uint8
 
-import flow_vis
+# import flow_vis
 
 # -------------------- generator modules -------------------- #
 class FNet(nn.Module):

@@ -604,7 +604,7 @@ class VSRModel(BaseModel):
             feat_w = self.opt['train']['feature_crit'].get('weight', 1)
             loss_feat_G = feat_w * loss_feat_G
             loss_G += loss_feat_G
-            self.log_dict['l_feat_G'] = loss_feat_G
+            self.log_dict['l_feat_G'] = loss_feat_G.item()
 
         # ping-pong (pp) loss
         if self.pp_crit is not None:

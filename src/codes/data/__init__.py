@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from .paired_lmdb_dataset import PairedLMDBDataset, PairedLMDBDatasetV2
+from .paired_lmdb_dataset import PairedLMDBDataset
 from .unpaired_lmdb_dataset import UnpairedLMDBDataset
 from .paired_folder_dataset import PairedFolderDatasetInfer, PairedFolderDatasetTrain
 

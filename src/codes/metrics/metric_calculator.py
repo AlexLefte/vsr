@@ -34,8 +34,7 @@ class MetricCalculator():
         self.lpips_mult = 1
         self.dm = None
         self.tof_mult = 1
-
-        self.reset()
+        self.metric_dict = OrderedDict()
 
         # update configs for each metric
         for metric_type, cfg in self.metric_opt.items():
@@ -63,7 +62,7 @@ class MetricCalculator():
 
     def reset(self):
         self.reset_per_sequence()
-        self.metric_dict = OrderedDict()
+        self.metric_dict.clear()
 
     def reset_per_sequence(self):
         self.seq_idx_curr = ''

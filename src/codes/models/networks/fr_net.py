@@ -150,7 +150,6 @@ class FRNet(BaseSequenceGenerator):
         s = self.scale
 
         # forward
-        times = []
         hr_seq = []
         lr_prev = torch.zeros(1, c, h, w, dtype=torch.float32).to(device)
         hr_prev = torch.zeros(
@@ -159,26 +158,23 @@ class FRNet(BaseSequenceGenerator):
         for i in tqdm.tqdm(range(tot_frm)):
             with torch.no_grad():
                 self.eval()
-                lr_curr = lr_data[i: i + 1, ...]
-                start = time()
-                lr_curr = lr_curr.cuda()
-                # end1 = time()
-                # print(f'Load time: {end1-start}')
+                lr_curr = lr_data[i: i + 1, ...].to(device)
                 hr_curr = self.forward(lr_curr, lr_prev, hr_prev)
-                torch.cuda.synchronize()
-                # end2 = time()
-                # print(f"Inf time: {end2-end1}")
-                hr_frm = hr_curr.squeeze(0).cpu()
-                torch.cuda.synchronize()
-                end = time()        
-                # print(f"\nGPU -> CPU time: {end-end2}")
-                times.append(end-start)
-                lr_prev, hr_prev = lr_curr, hr_curr
-
-                # hr_frm = hr_curr.squeeze(0).cpu().numpy()  # chw|rgb|uint8
-                hr_frm = hr_frm.numpy()  # chw|rgb|uint8
+                
+                # Update previous tensors with detached copies
+                lr_prev = lr_curr.detach()  # Explicitly detach
+                hr_prev = hr_curr.detach()  # Explicitly detach
+                
             # hr_seq.append(float32_to_uint8(hr_frm))
-            hr_seq.append(hr_frm)
+            hr_seq.append(hr_curr.detach().squeeze(0).cpu().numpy())
+
+            # Clean up the original tensors
+            del hr_curr, lr_curr
+
+        # Final cleanup
+        del lr_prev, hr_prev, lr_data
+        torch.cuda.empty_cache()
+
         return np.stack(hr_seq).transpose(0, 2, 3, 1)  # thwc
 
 
