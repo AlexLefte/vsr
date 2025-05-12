@@ -68,7 +68,7 @@ class SrResNet(nn.Module):
         out = self.conv_out(out)
 
         # Upsample LR and add to the final output
-        if self.upsample_func is not None and lr is not None:
+        if self.upsample_func is not None:
             if len(x.shape) == 5:
                 out += self.upsample_func(lr[:, self.ref_idx, :, :, :].squeeze(1))
             elif lr is not None:
