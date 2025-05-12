@@ -97,19 +97,25 @@ class ISRModel(BaseModel):
         loss_G.backward()
         self.optim_G.step()
 
-    def infer(self, lr_images):
+    def infer(self, lr_images, batch_size=32):
         """ Inference for a single low-resolution image (3D tensor HWC or CHW) """
         self.net_G.eval()
 
         lr_images = data_utils.canonicalize(lr_images)  # (C,H,W) float tensor
         lr_images = lr_images.to(self.device)  # Add batch dim
-
+        
+        sr_images = []
         with torch.no_grad():
-            sr_images = self.net_G(lr_images).cpu().numpy()
+            for i in range(0, lr_images.shape[0], batch_size):
+                batch = lr_images[i:i + batch_size]
+                sr_batch = self.net_G(batch).cpu()
+                sr_images.append(sr_batch)
+
 
         self.net_G.train()
 
-        return sr_images.transpose(0, 2, 3, 1)
+        sr_seq = torch.cat(sr_images, dim=0).numpy().transpose(0, 2, 3, 1)
+        return sr_seq
 
     def save(self, current_iter):
         self.save_network(self.net_G, 'G', current_iter)

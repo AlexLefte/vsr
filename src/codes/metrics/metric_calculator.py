@@ -212,8 +212,9 @@ class MetricCalculator():
         for metric_type, opt in self.metric_opt.items():
             if metric_type == 'PSNR':
                 PSNR = self.compute_PSNR()
-                metric_dict['PSNR'].append(PSNR)
-
+                if not np.isinf(PSNR):
+                    metric_dict['PSNR'].append(PSNR)
+                    
             elif metric_type == 'SSIM':
                 SSIM = self.compute_SSIM()
                 metric_dict['SSIM'].append(SSIM)
