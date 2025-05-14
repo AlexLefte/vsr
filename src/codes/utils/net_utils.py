@@ -90,7 +90,7 @@ def get_upsampling_func(scale=4, mode='bicubic'):
             align_corners=False)
     elif mode == 'bicubic':
         upsample_func = BicubicUpsample(scale_factor=scale)
-    elif mode == '':
+    elif mode is None:
         upsample_func = None
     else:
         raise ValueError('Unrecognized upsampling function: {}'.format(mode))

@@ -22,16 +22,27 @@ def define_generator(opt):
             out_nc=net_G_opt['out_nc'],
             nf=net_G_opt['nf'],
             nb=net_G_opt['nb'],
-            degradation=opt['dataset']['degradation']['type'],
+            mode=net_G_opt['upsample_func'],
             scale=opt['scale'])
     elif net_G_opt['name'].lower() == 'egvsr':  # efficient GAN-based generator
         from .fr_net import FRNet
+        # from .egvsr_nets import FRNet
         net_G = FRNet(
             in_nc=net_G_opt['in_nc'],
             out_nc=net_G_opt['out_nc'],
             nf=net_G_opt['nf'],
             nb=net_G_opt['nb'],
-            mode=net_G_opt['upsample_func'],
+            upsampling_fn=net_G_opt['upsample_func'],
+            scale=opt['scale'])       
+    elif net_G_opt['name'].lower() == 'tdan':  # efficient GAN-based generator
+        from .tdan import TDAN
+        net_G = TDAN(
+            in_nc=net_G_opt['in_nc'],
+            out_nc=net_G_opt['out_nc'],
+            nf=net_G_opt['nf'],
+            nb=net_G_opt['nb'],
+            upsampling_fn=net_G_opt['upsample_func'],
+            # degradation='bilinear',
             scale=opt['scale'])       
     elif net_G_opt['name'].lower() == 'edvr':
         from .edvr_net import EDVRNet

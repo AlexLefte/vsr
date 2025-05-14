@@ -16,7 +16,7 @@ class FRNet(BaseSequenceGenerator):
     """ Frame-recurrent network proposed in https://arxiv.org/abs/1801.04590
     """
 
-    def __init__(self, in_nc=3, out_nc=3, nf=64, nb=16, mode='bilinear',
+    def __init__(self, in_nc=3, out_nc=3, nf=64, nb=16, upsampling_fn='bilinear',
                  scale=4, transp_conv=False):
         super(FRNet, self).__init__()
 
@@ -24,7 +24,7 @@ class FRNet(BaseSequenceGenerator):
         self.reconstruction_channels = (scale**2 + 1) * in_nc  # SR input channels
 
         # get upsampling function according to the degradation mode
-        self.upsample_func = get_upsampling_func(self.scale, mode)
+        self.upsample_func = get_upsampling_func(self.scale, upsampling_fn)
 
         # define fnet & srnet
         self.fnet = FNet(in_nc)

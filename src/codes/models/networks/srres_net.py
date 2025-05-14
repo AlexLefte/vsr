@@ -1,15 +1,16 @@
 import torch.nn as nn
+from models.networks.modules.tsa_module import TSAFusion
 
 
 class ResidualBlock(nn.Module):
     """ Residual block without batch normalization
     """
-    def __init__(self, nf=64):
+    def __init__(self, nf=64, activation=nn.ReLU):
         super(ResidualBlock, self).__init__()
 
         self.conv = nn.Sequential(
             nn.Conv2d(nf, nf, 3, 1, 1, bias=True),
-            nn.ReLU(inplace=True),
+            activation(inplace=True),
             nn.Conv2d(nf, nf, 3, 1, 1, bias=True))
 
     def forward(self, x):
@@ -22,29 +23,35 @@ class SrResNet(nn.Module):
     """ Reconstruction & Upsampling network
     """
     def __init__(self, in_nc=3, out_nc=3, nf=64, nb=16, upsample_func=None, 
-                 scale=4, transp_conv=False, ref_idx=None):
+                 scale=4, transp_conv=False, ref_idx=None, with_tsa=False,
+                 activation=nn.ReLU):
         super(SrResNet, self).__init__()
 
         # input conv. - low frequency information extraction layer
-        self.conv_in = nn.Sequential(
-            nn.Conv2d(in_nc, nf, 3, 1, 1, bias=True),
-            nn.ReLU(inplace=True))
+        if with_tsa:
+            self.conv_in = TSAFusion(num_frame=in_nc,
+                                     num_feat=nf,
+                                     res_frame_idx=-1)
+        else:
+            self.conv_in = nn.Sequential(
+                nn.Conv2d(in_nc, nf, 3, 1, 1, bias=True),
+                activation(inplace=True))
 
         # residual blocks - high frequency information extraction
-        self.resblocks = nn.Sequential(*[ResidualBlock(nf) for _ in range(nb)])
+        self.resblocks = nn.Sequential(*[ResidualBlock(nf, activation) for _ in range(nb)])
 
         # upsampling
         if transp_conv:
             self.conv_up = nn.Sequential(
                 nn.ConvTranspose2d(nf, nf, 3, 2, 1, output_padding=1, bias=True),
-                nn.ReLU(inplace=True),
+                activation(inplace=True),
                 nn.ConvTranspose2d(nf, nf, 3, 2, 1, output_padding=1, bias=True),
-                nn.ReLU(inplace=True))
+                activation(inplace=True))
             conv_out_ch =  nf
         else:
             self.conv_up = nn.Sequential(
                 nn.PixelShuffle(scale),
-                nn.ReLU(inplace=True))
+                activation(inplace=True))
             conv_out_ch =  scale
 
         # output conv.
