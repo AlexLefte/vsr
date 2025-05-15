@@ -33,7 +33,8 @@ def define_generator(opt):
             nf=net_G_opt['nf'],
             nb=net_G_opt['nb'],
             upsampling_fn=net_G_opt['upsample_func'],
-            scale=opt['scale'])       
+            scale=opt['scale'],
+            with_tsa=net_G_opt.get('with_tsa', False))     
     elif net_G_opt['name'].lower() == 'tdan':  # efficient GAN-based generator
         from .tdan import TDAN
         net_G = TDAN(

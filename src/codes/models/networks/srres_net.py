@@ -24,7 +24,7 @@ class SrResNet(nn.Module):
     """
     def __init__(self, in_nc=3, out_nc=3, nf=64, nb=16, upsample_func=None, 
                  scale=4, transp_conv=False, ref_idx=None, with_tsa=False,
-                 activation=nn.ReLU):
+                 shallow_feat_res=False, activation=nn.ReLU):
         super(SrResNet, self).__init__()
 
         # input conv. - low frequency information extraction layer
@@ -60,27 +60,30 @@ class SrResNet(nn.Module):
         # upsampling function
         self.upsample_func = upsample_func
         self.ref_idx = ref_idx
+        self.shallow_feat_res = shallow_feat_res
 
     def forward(self, x, lr=None):
-        """ x: input data
-        """
-        # Shallow feature extraction
-        out = self.conv_in(x)
+            """ x: input data
+            """
+            # Shallow feature extraction
+            shallow_feat = self.conv_in(x)
 
-        # Deep feature extraction
-        out = self.resblocks(out)
+            # Deep feature extraction
+            deep_feat = self.resblocks(shallow_feat)
+            if self.shallow_feat_res:
+                deep_feat = deep_feat + shallow_feat
 
-        # Upsampling
-        out = self.conv_up(out)
-        out = self.conv_out(out)
+            # Upsampling
+            upsampled = self.conv_up(deep_feat)
 
-        # Upsample LR and add to the final output
-        if self.upsample_func is not None:
-            if len(x.shape) == 5:
-                out += self.upsample_func(lr[:, self.ref_idx, :, :, :].squeeze(1))
-            elif lr is not None:
-                out += self.upsample_func(lr)
-            else:
-                out += self.upsample_func(x)
+            # Refinement
+            out = self.conv_out(upsampled)
 
-        return out
+            # Upsample LR and add to the final output
+            if self.upsample_func is not None:
+                if lr is not None:
+                    out += self.upsample_func(lr)
+                else:
+                    out += self.upsample_func(x)
+
+            return out
