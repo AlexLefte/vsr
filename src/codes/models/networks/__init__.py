@@ -37,13 +37,11 @@ def define_generator(opt):
     elif net_G_opt['name'].lower() == 'tdan':  # efficient GAN-based generator
         from .tdan import TDAN
         net_G = TDAN(
-            in_nc=net_G_opt['in_nc'],
-            out_nc=net_G_opt['out_nc'],
-            nf=net_G_opt['nf'],
-            nb=net_G_opt['nb'],
-            upsampling_fn=net_G_opt['upsample_func'],
-            # degradation='bilinear',
-            scale=opt['scale'])       
+            in_channels=net_G_opt['in_nc'],
+            out_channels=net_G_opt['out_nc'],
+            num_feat=net_G_opt['nf'],
+            num_reconstruct_block=net_G_opt['nb'],
+            upsampling_fn=net_G_opt['upsample_func'])       
     elif net_G_opt['name'].lower() == 'edvr':
         from .edvr_net import EDVRNet
         net_G = EDVRNet(

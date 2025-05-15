@@ -66,7 +66,7 @@ class DCNAlignNet(nn.Module):
             if i == center:
                 y.append(x_center.unsqueeze(1))
                 continue
-            supp = precomputed_features[:, i, :, :, :]
+            supp = precomputed_features[:, i, :, :, :].contiguous()
             fea = torch.cat([ref, supp], dim=1)
             fea = self.cr(fea)
 
@@ -96,7 +96,7 @@ class TDAN(nn.Module):
                  num_extract_block=5,
                  num_reconstruct_block=10,
                  res_frame_idx=None,
-                 upsample_func='bicubic',
+                 upsampling_fn='bicubic',
                  activation=nn.ReLU,
                  with_tsa=False):
         super(TDAN, self).__init__()
@@ -106,15 +106,19 @@ class TDAN(nn.Module):
                                      num_extract_block=num_extract_block,
                                      activation=activation)
 
+        # Reference index
+        if res_frame_idx is None:
+            res_frame_idx = num_frames // 2
+
         # Reconstruction module
-        upsample_fn = get_upsampling_func(mode=upsample_func)
-        self.reconstruction = SrResNet(in_channels=in_channels,
-                                       out_nc=out_channels,
-                                       nf=num_feat,
-                                       nb=num_reconstruct_block,
-                                       upsample_func=upsample_fn,
-                                       ref_idx=res_frame_idx,
-                                       with_tsa=with_tsa)
+        upsample_fn = get_upsampling_func(mode=upsampling_fn)
+        self.srnet = SrResNet(in_nc=in_channels*num_frames,
+                              out_nc=out_channels,
+                              nf=num_feat,
+                              nb=num_reconstruct_block,
+                              upsample_func=upsample_fn,
+                              ref_idx=res_frame_idx,
+                              with_tsa=with_tsa)
         self.reconstruction_channels = num_feat
 
         # Others
@@ -130,7 +134,7 @@ class TDAN(nn.Module):
         out = self.align_net(x)
 
         # Fuse features and reconstruct
-        out = self.reconstruction(out)
+        out = self.srnet(out)
 
         return out
 
@@ -176,9 +180,9 @@ class TDAN(nn.Module):
             
             # Perform alignment using cached features
             aligned_frames = self.align_net(features_window, x_center)
-            
+
             # Reconstruct
-            out_frame = self.reconstruction(aligned_frames.view(B, -1, H, W))
+            out_frame = self.srnet(aligned_frames.view(B, -1, H, W), x_center)
             outputs.append(out_frame)
 
         # (B, T_out, C, H_up, W_up)
