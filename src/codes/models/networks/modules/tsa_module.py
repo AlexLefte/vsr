@@ -18,7 +18,8 @@ class TSAFusion(nn.Module):
 
     def __init__(self, num_feat=64, num_frame=5, res_frame_idx=2):
         super(TSAFusion, self).__init__()
-        self.center_frame_idx = res_frame_idx
+        self.reference_frame_idx = res_frame_idx
+        print(f"Reference frame: {self.reference_frame_idx}.")
         # temporal attention (before fusion conv)
         self.temporal_attn1 = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
         self.temporal_attn2 = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
@@ -49,9 +50,10 @@ class TSAFusion(nn.Module):
         Returns:
             Tensor: Features after TSA with the shape (b, c, h, w).
         """
+        print(aligned_feat.shape)
         b, t, c, h, w = aligned_feat.size()
         # temporal attention
-        embedding_ref = self.temporal_attn1(aligned_feat[:, self.center_frame_idx, :, :, :].clone())
+        embedding_ref = self.temporal_attn1(aligned_feat[:, self.reference_frame_idx, :, :, :].clone())
         embedding = self.temporal_attn2(aligned_feat.view(-1, c, h, w))
         embedding = embedding.view(b, t, -1, h, w)  # (b, t, c, h, w)
 

@@ -5,9 +5,9 @@ def define_generator(opt):
     net_G_opt = opt['model']['generator']
 
     if net_G_opt['name'].lower() == 'srresnet':
-        from .srres_net import SrResNet
+        from .srnet import SRNet
         upsample_fn = get_upsampling_func(mode=net_G_opt['upsample_func'])
-        net_G = SrResNet(
+        net_G = SRNet(
             in_nc=net_G_opt['in_nc'],
             out_nc=net_G_opt['out_nc'],
             nf=net_G_opt['nf'],
@@ -35,14 +35,17 @@ def define_generator(opt):
             upsampling_fn=net_G_opt['upsample_func'],
             scale=opt['scale'],
             with_tsa=net_G_opt.get('with_tsa', False))     
-    elif net_G_opt['name'].lower() == 'tdan':  # efficient GAN-based generator
-        from .tdan import TDAN
-        net_G = TDAN(
+    elif net_G_opt['name'].lower() == 'dcnvsr':  # efficient GAN-based generator
+        from .dcn_vsr import DcnVSR
+        net_G = DcnVSR(
             in_channels=net_G_opt['in_nc'],
             out_channels=net_G_opt['out_nc'],
             num_feat=net_G_opt['nf'],
             num_reconstruct_block=net_G_opt['nb'],
-            upsampling_fn=net_G_opt['upsample_func'])       
+            num_deform_blocks=net_G_opt['num_deform_groups'],
+            num_frames=net_G_opt['win_size'],
+            upsampling_fn=net_G_opt['upsample_func'],
+            with_tsa=net_G_opt.get('with_tsa', False))       
     elif net_G_opt['name'].lower() == 'edvr':
         from .edvr_net import EDVRNet
         net_G = EDVRNet(

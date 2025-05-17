@@ -19,19 +19,20 @@ class ResidualBlock(nn.Module):
         return out
 
 
-class SrResNet(nn.Module):
+class SRNet(nn.Module):
     """ Reconstruction & Upsampling network
     """
     def __init__(self, in_nc=3, out_nc=3, nf=64, nb=16, upsample_func=None, 
                  scale=4, transp_conv=False, ref_idx=None, with_tsa=False,
                  shallow_feat_res=False, activation=nn.ReLU):
-        super(SrResNet, self).__init__()
+        super(SRNet, self).__init__()
 
         # input conv. - low frequency information extraction layer
         if with_tsa:
+            print("With TSA")
             self.conv_in = TSAFusion(num_frame=in_nc,
                                      num_feat=nf,
-                                     res_frame_idx=-1)
+                                     res_frame_idx=-1 if ref_idx is None else ref_idx)
         else:
             self.conv_in = nn.Sequential(
                 nn.Conv2d(in_nc, nf, 3, 1, 1, bias=True),

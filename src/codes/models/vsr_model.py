@@ -525,6 +525,10 @@ class VSRModel(BaseModel):
         self.warp_crit = define_criterion(
             self.opt['train'].get('warping_crit'))
         
+        # alignment crit -> DCN alignment
+        self.align_crit = define_criterion(
+            self.opt['train'].get('align_crit'))
+
         # feature criterion
         self.feat_crit = define_criterion(
             self.opt['train'].get('feature_crit'))
@@ -574,8 +578,8 @@ class VSRModel(BaseModel):
         loss_G += loss_pix_G
         self.log_dict['l_pix_G'] = loss_pix_G.item()
 
-        # warping loss
-        if self.warp_crit is not None:
+        # warping loss -> motion estimation and compensation
+        if self.warp_crit is not None: 
             # warp lr_prev according to lr_flow
             lr_curr = net_G_output_dict['lr_curr']
             lr_prev = net_G_output_dict['lr_prev']
@@ -586,6 +590,25 @@ class VSRModel(BaseModel):
             loss_warp_G = warp_w * self.warp_crit(lr_warp, lr_curr)
             loss_G += loss_warp_G
             self.log_dict['l_warp_G'] = loss_warp_G.item()
+
+        # alignment crit -> feature alignment
+        if self.align_crit is not None:
+            # Get tensors
+            win_size = self.net_G.num_frames
+
+            # Repeat the current frame on dim 2 to allow the loss computation
+            lr_curr = lr_data.unsqueeze(2).repeat(1, 1, win_size - 1, 1, 1, 1)  # B x T x Num_frames-1 x C x H x W
+            lr_aligned = net_G_output_dict['lr_aligned_feat']  # B x T x Num_frames-1 x C x H x W
+
+            # Sanity check
+            # print("Computing alignment loss..")
+            # print(lr_curr.shape)
+            # print(lr_aligned.shape)
+
+            align_w = self.opt['train']['align_crit'].get('weight', 1)            
+            loss_align_G = align_w * self.align_crit(lr_curr, lr_aligned)
+            loss_G += loss_align_G
+            self.log_dict['l_align_G'] = loss_align_G.item()
 
         # feature (feat) loss
         if self.feat_crit is not None:

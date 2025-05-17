@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from models.networks.flow_net import FNet
-from models.networks.srres_net import SrResNet
+from codes.models.networks.srnet import SRNet
 from time import time
 from models.networks.base_nets import BaseSequenceGenerator
 from utils.net_utils import space_to_depth, backward_warp, get_upsampling_func
@@ -17,7 +17,7 @@ class FRNet(BaseSequenceGenerator):
     """
 
     def __init__(self, in_nc=3, out_nc=3, nf=64, nb=16, upsampling_fn='bilinear',
-                 scale=4, transp_conv=False):
+                 scale=4, transp_conv=False, with_tsa=False):
         super(FRNet, self).__init__()
 
         self.scale = scale
@@ -28,8 +28,9 @@ class FRNet(BaseSequenceGenerator):
 
         # define fnet & srnet
         self.fnet = FNet(in_nc)
-        self.srnet = SrResNet(self.reconstruction_channels, out_nc, nf, nb,
-                              self.upsample_func, transp_conv=transp_conv, ref_idx=0)
+        self.srnet = SRNet(self.reconstruction_channels, out_nc, nf, nb,
+                              self.upsample_func, transp_conv=transp_conv, 
+                              with_tsa=with_tsa, ref_idx=0)
 
     def generate_dummy_input(self, lr_size):
         c, lr_h, lr_w = lr_size

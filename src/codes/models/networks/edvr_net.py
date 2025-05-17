@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import tqdm
-from models.networks.srres_net import ResidualBlock, SrResNet
+from codes.models.networks.srnet import ResidualBlock, SRNet
 from models.networks.modules.pcda_module import PCDAlignment
 from models.networks.modules.tsa_module import TSAFusion
 from time import time
@@ -109,7 +109,7 @@ class EDVRNet(nn.Module):
 
         # Reconstruction
         upsample_fn = get_upsampling_func(mode=upsample_func)
-        self.reconstruction = SrResNet(in_channels=num_feat,
+        self.reconstruction = SRNet(in_channels=num_feat,
                                        out_nc=out_channels,
                                        nf=num_feat,
                                        nb=num_reconstruct_block,
