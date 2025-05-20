@@ -17,7 +17,7 @@ class FRNet(BaseSequenceGenerator):
     """
 
     def __init__(self, in_nc=3, out_nc=3, nf=64, nb=16, upsampling_fn='bilinear',
-                 scale=4, transp_conv=False, with_tsa=False):
+                 scale=4, transp_conv=False, with_tsa=False, shallow_feat_res=False):
         super(FRNet, self).__init__()
 
         self.scale = scale
@@ -30,7 +30,7 @@ class FRNet(BaseSequenceGenerator):
         self.fnet = FNet(in_nc)
         self.srnet = SRNet(self.reconstruction_channels, out_nc, nf, nb,
                               self.upsample_func, transp_conv=transp_conv, 
-                              with_tsa=with_tsa, ref_idx=0)
+                              with_tsa=with_tsa, ref_idx=0, shallow_feat_res=shallow_feat_res)
 
     def generate_dummy_input(self, lr_size):
         c, lr_h, lr_w = lr_size

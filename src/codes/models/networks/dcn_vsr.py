@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from codes.models.networks.srnet import ResidualBlock, SRNet
+from models.networks.srnet import ResidualBlock, SRNet
 from models.networks.modules.pcda_module import DCNv2
 from utils.net_utils import get_upsampling_func
 
@@ -83,7 +83,7 @@ class DCNAlignNet(nn.Module):
                 recon = self.recon_lr(supp).unsqueeze(1)
                 aligned_list.append(recon)
 
-        return torch.cat(aligned_list, dim=1)  # (B, N, 3, H, W)
+        return torch.cat(aligned_list, dim=1)  # (B, N, C, H, W)
     
 
 class DcnVSR(nn.Module):
@@ -99,7 +99,8 @@ class DcnVSR(nn.Module):
                  res_frame_idx=None,
                  upsampling_fn='bicubic',
                  activation=nn.ReLU,
-                 with_tsa=False):
+                 with_tsa=False,
+                 shallow_feat_res=False):
         super(DcnVSR, self).__init__()
         # Alignment module
         self.align_net = DCNAlignNet(num_feat=num_feat,
@@ -115,12 +116,13 @@ class DcnVSR(nn.Module):
         # Reconstruction module
         upsample_fn = get_upsampling_func(mode=upsampling_fn)
         self.srnet = SRNet(in_nc=in_channels*num_frames,
-                              out_nc=out_channels,
-                              nf=num_feat,
-                              nb=num_reconstruct_block,
-                              upsample_func=upsample_fn,
-                              ref_idx=res_frame_idx,
-                              with_tsa=with_tsa)
+                        out_nc=out_channels,
+                        nf=num_feat,
+                        nb=num_reconstruct_block,
+                        upsample_func=upsample_fn,
+                        ref_idx=res_frame_idx,
+                        with_tsa=with_tsa,
+                        shallow_feat_res=shallow_feat_res)
         self.reconstruction_channels = num_feat
 
         # Others
@@ -186,7 +188,8 @@ class DcnVSR(nn.Module):
             # print(f"Aligned lr shape: {lr_aligned.shape}")
 
             # Reconstruct
-            out_frame = self.srnet(lr_aligned.view(B, -1, H, W), x_center)
+            # out_frame = self.srnet(lr_aligned.view(B, -1, H, W), x_center)  # DELETE: edited here
+            out_frame = self.srnet(lr_aligned, x_center)
             outputs.append(out_frame)
 
             # Append aligned frames (without the central frame)

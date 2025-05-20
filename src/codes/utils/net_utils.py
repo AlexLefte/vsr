@@ -115,7 +115,6 @@ class BicubicUpsample(nn.Module):
 
     def __init__(self, scale_factor, a=-0.75):
         super(BicubicUpsample, self).__init__()
-
         # calculate weights
         cubic = torch.FloatTensor([
             [0, a, -2 * a, a],

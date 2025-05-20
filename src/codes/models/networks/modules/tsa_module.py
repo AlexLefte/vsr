@@ -50,7 +50,6 @@ class TSAFusion(nn.Module):
         Returns:
             Tensor: Features after TSA with the shape (b, c, h, w).
         """
-        print(aligned_feat.shape)
         b, t, c, h, w = aligned_feat.size()
         # temporal attention
         embedding_ref = self.temporal_attn1(aligned_feat[:, self.reference_frame_idx, :, :, :].clone())

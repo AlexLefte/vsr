@@ -4,48 +4,47 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import tqdm
-from codes.models.networks.srnet import ResidualBlock, SRNet
+from models.networks.egvsr_nets import ResidualBlock
 from models.networks.modules.pcda_module import PCDAlignment
 from models.networks.modules.tsa_module import TSAFusion
 from time import time
 from utils.net_utils import get_upsampling_func
 
 
-# class SRNet(nn.Module):
-#     """ Reconstruction & Upsampling network
-#     """
+class SRNet(nn.Module):
+    """ Reconstruction & Upsampling network
+    """
 
-#     def __init__(self, out_nc=3, nf=64, nb=16, upsample_func=None,
-#                  scale=4):
-#         super(SRNet, self).__init__()
+    def __init__(self, out_nc=3, nf=64, nb=16, upsample_func=None,
+                 scale=4):
+        super(SRNet, self).__init__()
 
-#         # residual blocks
-#         self.resblocks = nn.Sequential(*[ResidualBlock(nf) for _ in range(nb)])
+        # residual blocks
+        self.resblocks = nn.Sequential(*[ResidualBlock(nf) for _ in range(nb)])
 
-#         # upsampling
-#         self.conv_up = nn.Sequential(
-#             nn.ConvTranspose2d(nf, nf, 3, 2, 1, output_padding=1, bias=True),
-#             nn.ReLU(inplace=True),
-#             nn.ConvTranspose2d(nf, nf, 3, 2, 1, output_padding=1, bias=True),
-#             nn.ReLU(inplace=True))
+        # upsampling
+        self.conv_up = nn.Sequential(
+            nn.ConvTranspose2d(nf, nf, 3, 2, 1, output_padding=1, bias=True),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(nf, nf, 3, 2, 1, output_padding=1, bias=True),
+            nn.ReLU(inplace=True))
 
-#         self.conv_up_cheap = nn.Sequential(
-#             nn.PixelShuffle(4),
-#             nn.ReLU(inplace=True))
+        self.conv_up_cheap = nn.Sequential(
+            nn.PixelShuffle(4),
+            nn.ReLU(inplace=True))
 
-#         # output conv.
-#         self.conv_out = nn.Conv2d(4, out_nc, 3, 1, 1, bias=True)
+        # output conv.
+        self.conv_out = nn.Conv2d(4, out_nc, 3, 1, 1, bias=True)
 
-#         # upsampling function
-#         self.upsample_func = upsample_func
+        # upsampling function
+        self.upsample_func = upsample_func
 
-#     def forward(self, x):
-#         out = self.resblocks(x)
-#         out = self.conv_up_cheap(out)
-#         out = self.conv_out(out)
-#         # out += self.upsample_func(lr_curr)
-
-#         return out
+    def forward(self, x, lr_curr):
+        out = self.resblocks(x)
+        out = self.conv_up_cheap(out)
+        out = self.conv_out(out)
+        out += self.upsample_func(lr_curr)
+        return out
     
 
 class EDVRNet(nn.Module):
@@ -80,6 +79,7 @@ class EDVRNet(nn.Module):
                  num_extract_block=5,
                  num_reconstruct_block=10,
                  res_frame_idx=None,
+                 hr_in=False,
                  with_tsa=True,
                  upsample_func='bicubic'):
         super(EDVRNet, self).__init__()
@@ -87,6 +87,7 @@ class EDVRNet(nn.Module):
             self.res_frame_idx = num_frames // 2  # Pick middle frame as default
         else:
             self.res_frame_idx = res_frame_idx
+        self.hr_in = hr_in
         self.with_tsa = with_tsa
 
         # Pyramid feature extraction
@@ -109,13 +110,10 @@ class EDVRNet(nn.Module):
 
         # Reconstruction
         upsample_fn = get_upsampling_func(mode=upsample_func)
-        self.reconstruction = SRNet(in_channels=num_feat,
-                                       out_nc=out_channels,
-                                       nf=num_feat,
-                                       nb=num_reconstruct_block,
-                                       upsample_func=upsample_fn,
-                                       ref_idx=self.res_frame_idx)
-        self.reconstruction_channels = num_feat
+        self.reconstruction = SRNet(out_nc=out_channels,
+                                    nf=num_feat,
+                                    nb=num_reconstruct_block,
+                                    upsample_func=upsample_fn)
 
         # activation function
         self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
@@ -218,7 +216,7 @@ class EDVRNet(nn.Module):
 
         # Reconstruction with SRNet
         # print(f"Feature shape: {feat.shape}")
-        out = self.reconstruction(feat)
+        out = self.reconstruction(feat, x[:, self.res_frame_idx, ... ])
         return out
     
 
@@ -245,22 +243,21 @@ class EDVRNet(nn.Module):
         right_pad = lr_data_resized[-pad-1:-1, ...].flip(0)  # Take last 'pad' frames before last frame and flip
         
         # Concatenate along time dimension
-        lr_data_padded = torch.cat([left_pad, lr_data_resized, right_pad], dim=0)
+        lr_data_padded = torch.cat([left_pad, lr_data_resized, right_pad], dim=0).to(device)
 
         # Forward pass
         times = []
         hr_seq = []
         
-        for i in tqdm.tqdm(range(tot_frm)):
-            with torch.no_grad():
-                self.eval()
-                
+        self.eval()
+        for i in tqdm.tqdm(range(tot_frm)): 
+            with torch.no_grad():     
                 # Get window for current frame
                 window_start = i
                 window_end = window_start + self.num_frames
                 
                 # Extract frames for the window
-                lr_window = lr_data_padded[window_start:window_end].to(device)
+                lr_window = lr_data_padded[window_start:window_end]
                 
                 # Start timing
                 start = time()
@@ -269,7 +266,7 @@ class EDVRNet(nn.Module):
                 lr_window = lr_window.unsqueeze(0)  # Add batch dimension: [1, num_frames, C, H, W]
                 
                 # Forward pass
-                print(lr_window.shape)
+                # print(lr_window.shape)
                 output = self.forward(lr_window)
                 
                 # Extract only the area corresponding to the original frame (without spatial padding)

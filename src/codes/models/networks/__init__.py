@@ -26,7 +26,6 @@ def define_generator(opt):
             scale=opt['scale'])
     elif net_G_opt['name'].lower() == 'egvsr':  # efficient GAN-based generator
         from .fr_net import FRNet
-        # from .egvsr_nets import FRNet
         net_G = FRNet(
             in_nc=net_G_opt['in_nc'],
             out_nc=net_G_opt['out_nc'],
@@ -34,8 +33,9 @@ def define_generator(opt):
             nb=net_G_opt['nb'],
             upsampling_fn=net_G_opt['upsample_func'],
             scale=opt['scale'],
+            shallow_feat_res=net_G_opt.get('shallow_feat_res', False),
             with_tsa=net_G_opt.get('with_tsa', False))     
-    elif net_G_opt['name'].lower() == 'dcnvsr':  # efficient GAN-based generator
+    elif net_G_opt['name'].lower() == 'dcnvsr':  # Deformable conv VSR generator
         from .dcn_vsr import DcnVSR
         net_G = DcnVSR(
             in_channels=net_G_opt['in_nc'],
@@ -45,6 +45,7 @@ def define_generator(opt):
             num_deform_blocks=net_G_opt['num_deform_groups'],
             num_frames=net_G_opt['win_size'],
             upsampling_fn=net_G_opt['upsample_func'],
+            shallow_feat_res=net_G_opt.get('shallow_feat_res', False),
             with_tsa=net_G_opt.get('with_tsa', False))       
     elif net_G_opt['name'].lower() == 'edvr':
         from .edvr_net import EDVRNet

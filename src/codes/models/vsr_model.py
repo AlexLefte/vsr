@@ -651,7 +651,7 @@ class VSRModel(BaseModel):
                 :param lr_data: a rgb video sequence with shape thwc
                 :return: a rgb video sequence with type np.uint8 and shape thwc
         """
-        print(lr_data.size())
+        # print(lr_data.size())
 
         # Eval mode
         self.net_G.eval()
