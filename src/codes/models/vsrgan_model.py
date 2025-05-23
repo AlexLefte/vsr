@@ -6,6 +6,7 @@ import torch.optim as optim
 from .vsr_model import VSRModel
 from .networks import define_generator, define_discriminator
 from .networks.vgg_nets import VGGFeatureExtractor
+from optim.losses import compute_gradient_penalty
 from .optim import define_criterion, define_lr_schedule
 from utils import net_utils
 
@@ -118,6 +119,10 @@ class VSRGANModel(VSRModel):
         # gan criterion
         self.gan_crit = define_criterion(
             self.opt['train'].get('gan_crit'))
+        
+        # Check if gradient penalty is needed
+        self.lambda_gp = self.opt['train']['gan_crit'].get('lambda_gp', 0)
+        print(f"Gradient Penalty Lambda: {self.lambda_gp}")
 
     def train(self, data):
         """ Function for mini-batch training
@@ -176,16 +181,21 @@ class VSRGANModel(VSRModel):
         net_D_input_dict.update(net_G_output_dict)
 
         # forward real sequence (gt)
-        real_pred, net_D_oputput_dict = self.net_D.forward_sequence(
+        real_pred, net_D_output_dict = self.net_D.forward_sequence(
             gt_data, net_D_input_dict)
+        real_input = net_D_output_dict.get('input_data', None)
 
         # reuse internal data (e.g., lr optical flow) to reduce computations
-        net_D_input_dict.update(net_D_oputput_dict)
+        net_D_input_dict.update(net_D_output_dict)
 
         # forward fake sequence (hr)
-        fake_pred, _ = self.net_D.forward_sequence(
+        fake_pred, net_D_output_dict = self.net_D.forward_sequence(
             hr_data.detach(), net_D_input_dict)
+        fake_input = net_D_output_dict.get('input_data', None)
 
+        # Clear input data
+        if 'input_data' in net_D_input_dict:
+            del net_D_input_dict['input_data']
 
         # ------------ optimize D ------------ #
         self.log_dict = OrderedDict()
@@ -210,6 +220,15 @@ class VSRGANModel(VSRModel):
             real_loss_D = self.gan_crit(real_pred_D, 1)
             fake_loss_D = self.gan_crit(fake_pred_D, 0)
             loss_D = real_loss_D + fake_loss_D
+
+            # Check if gradient penalty is required
+            if self.lambda_gp != 0:
+                # Compute gp
+                gp = compute_gradient_penalty(self.net_D, real_input.detach(), fake_input.detach(), 
+                                              lambda_gp=self.lambda_gp, device=gt_data.device)
+
+                # Add gp to loss
+                loss_D = loss_D + gp
 
             # update D
             loss_D.backward()
