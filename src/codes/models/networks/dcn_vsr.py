@@ -133,15 +133,6 @@ class DcnVSR(nn.Module):
         self.conv_first = self.align_net.conv_first
         self.residual_layer = self.align_net.residual_layer
 
-    # def forward(self, x):
-    #     # Extract and align features
-    #     out = self.align_net(x)
-
-    #     # Fuse features and reconstruct
-    #     out = self.srnet(out)
-
-    #     return out
-
     def forward_sequence(self, x):
         """
         Args:
