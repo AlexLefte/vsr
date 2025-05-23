@@ -24,7 +24,7 @@ def compute_gradient_penalty(D, real_samples, fake_samples, lambda_gp=10, device
         interpolates = (alpha * real_samples + (1 - alpha) * fake_samples).requires_grad_(True)
 
         # Forward pass
-        d_interpolates = D(interpolates)
+        d_interpolates, _ = D(interpolates)
 
         # If D returns [B, 1], flatten to [B]
         if d_interpolates.ndim > 1:

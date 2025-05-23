@@ -147,6 +147,7 @@ train:
     update_policy: adaptive
     update_threshold: 0.4
     crop_border_ratio: 0.75
+    n_critic: 1
     lr: !!float 5e-5
     lr_schedule:
       type: FixedLR

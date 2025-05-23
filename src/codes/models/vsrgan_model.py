@@ -154,87 +154,93 @@ class VSRGANModel(VSRModel):
 
 
         # ------------ clear optimizers ------------ #
-        self.net_G.train()
-        self.net_D.train()
         self.optim_G.zero_grad()
         self.optim_D.zero_grad()
 
 
         # ------------ forward G ------------ #
+        self.net_G.train()
         net_G_output_dict = self.net_G.forward_sequence(lr_data)
         hr_data = net_G_output_dict['hr_data']
 
 
         # ------------ forward D ------------ #
+        self.net_D.train()
         for param in self.net_D.parameters():
             param.requires_grad = True
 
-        # feed additional data
-        net_D_input_dict = {
-            'net_G': self.net_G,
-            'lr_data': lr_data,
-            'bi_data': bi_data,
-            'use_pp_crit': (self.pp_crit is not None),
-            'crop_border_ratio': self.opt['train']['discriminator'].get(
-                'crop_border_ratio', 1.0)
-        }
-        net_D_input_dict.update(net_G_output_dict)
+        # Run for n_critic updates
+        n_critic = self.opt['train']['discriminator'].get('n_critic', 1)
+        for _ in range(n_critic):
+            # Clear optimizer
+            self.optim_D.zero_grad()
 
-        # forward real sequence (gt)
-        real_pred, net_D_output_dict = self.net_D.forward_sequence(
-            gt_data, net_D_input_dict)
-        real_input = net_D_output_dict.get('input_data', None)
+            # feed additional data
+            net_D_input_dict = {
+                'net_G': self.net_G,
+                'lr_data': lr_data,
+                'bi_data': bi_data,
+                'use_pp_crit': (self.pp_crit is not None),
+                'crop_border_ratio': self.opt['train']['discriminator'].get(
+                    'crop_border_ratio', 1.0)
+            }
+            net_D_input_dict.update(net_G_output_dict)
 
-        # reuse internal data (e.g., lr optical flow) to reduce computations
-        net_D_input_dict.update(net_D_output_dict)
+            # forward real sequence (gt)
+            real_pred, net_D_output_dict = self.net_D.forward_sequence(
+                gt_data, net_D_input_dict)
+            real_input = net_D_output_dict.get('input_data', None)
 
-        # forward fake sequence (hr)
-        fake_pred, net_D_output_dict = self.net_D.forward_sequence(
-            hr_data.detach(), net_D_input_dict)
-        fake_input = net_D_output_dict.get('input_data', None)
+            # reuse internal data (e.g., lr optical flow) to reduce computations
+            net_D_input_dict.update(net_D_output_dict)
 
-        # Clear input data
-        if 'input_data' in net_D_input_dict:
-            del net_D_input_dict['input_data']
+            # forward fake sequence (hr)
+            fake_pred, net_D_output_dict = self.net_D.forward_sequence(
+                hr_data.detach(), net_D_input_dict)
+            fake_input = net_D_output_dict.get('input_data', None)
 
-        # ------------ optimize D ------------ #
-        self.log_dict = OrderedDict()
-        real_pred_D, fake_pred_D = real_pred[0], fake_pred[0]
+            # Clear input data
+            if 'input_data' in net_D_input_dict:
+                del net_D_input_dict['input_data']
 
-        # select D update policy
-        update_policy = self.opt['train']['discriminator']['update_policy']
-        if update_policy == 'adaptive':
-            # update D adaptively
-            logged_real_pred_D = torch.log(torch.sigmoid(real_pred_D) + 1e-8)
-            logged_fake_pred_D = torch.log(torch.sigmoid(fake_pred_D) + 1e-8)
+            # ------------ optimize D ------------ #
+            self.log_dict = OrderedDict()
+            real_pred_D, fake_pred_D = real_pred[0], fake_pred[0]
 
-            distance = logged_real_pred_D.mean() - logged_fake_pred_D.mean()
+            # select D update policy
+            update_policy = self.opt['train']['discriminator']['update_policy']
+            if update_policy == 'adaptive':
+                # update D adaptively
+                logged_real_pred_D = torch.log(torch.sigmoid(real_pred_D) + 1e-8)
+                logged_fake_pred_D = torch.log(torch.sigmoid(fake_pred_D) + 1e-8)
 
-            threshold = self.opt['train']['discriminator']['update_threshold']
-            upd_D = distance.item() < threshold
-        else:
-            upd_D = True
+                distance = logged_real_pred_D.mean() - logged_fake_pred_D.mean()
 
-        if upd_D:
-            self.cnt_upd_D += 1
-            real_loss_D = self.gan_crit(real_pred_D, 1)
-            fake_loss_D = self.gan_crit(fake_pred_D, 0)
-            loss_D = real_loss_D + fake_loss_D
+                threshold = self.opt['train']['discriminator']['update_threshold']
+                upd_D = distance.item() < threshold
+            else:
+                upd_D = True
 
-            # Check if gradient penalty is required
-            if self.lambda_gp != 0:
-                # Compute gp
-                gp = compute_gradient_penalty(self.net_D, real_input.detach(), fake_input.detach(), 
-                                              lambda_gp=self.lambda_gp, device=gt_data.device)
+            if upd_D:
+                self.cnt_upd_D += 1
+                real_loss_D = self.gan_crit(real_pred_D, 1)
+                fake_loss_D = self.gan_crit(fake_pred_D, 0)
+                loss_D = real_loss_D + fake_loss_D
 
-                # Add gp to loss
-                loss_D = loss_D + gp
+                # Check if gradient penalty is required
+                if self.lambda_gp != 0:
+                    # Compute gp
+                    gp = compute_gradient_penalty(self.net_D, real_input.detach(), fake_input.detach(), 
+                                                lambda_gp=self.lambda_gp, device=gt_data.device)
 
-            # update D
-            loss_D.backward()
-            self.optim_D.step()
-        else:
-            loss_D = torch.zeros(1)
+                    # Add gp to loss
+                    loss_D = loss_D + gp
+
+                # update D
+                loss_D.backward()
+                self.optim_D.step()
+            else:
+                loss_D = torch.zeros(1)
 
         # logging
         self.log_dict['l_gan_D'] = loss_D.item()
