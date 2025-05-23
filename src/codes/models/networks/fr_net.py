@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from models.networks.flow_net import FNet
-from codes.models.networks.srnet import SRNet
+from models.networks.srnet import SRNet
 from time import time
 from models.networks.base_nets import BaseSequenceGenerator
 from utils.net_utils import space_to_depth, backward_warp, get_upsampling_func
@@ -156,7 +156,7 @@ class FRNet(BaseSequenceGenerator):
         hr_prev = torch.zeros(
             1, c, s * h, s * w, dtype=torch.float32).to(device)
 
-        for i in tqdm.tqdm(range(tot_frm)):
+        for i in range(tot_frm):
             with torch.no_grad():
                 self.eval()
                 lr_curr = lr_data[i: i + 1, ...].to(device)
