@@ -32,6 +32,7 @@ def define_generator(opt):
             nf=net_G_opt['nf'],
             nb=net_G_opt['nb'],
             upsampling_fn=net_G_opt['upsample_func'],
+            transp_conv=net_G_opt['transp_conv'],
             scale=opt['scale'],
             shallow_feat_res=net_G_opt.get('shallow_feat_res', False),
             with_tsa=net_G_opt.get('with_tsa', False))     
