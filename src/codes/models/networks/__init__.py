@@ -85,16 +85,16 @@ def define_discriminator(opt):
     else:  # BI
         spatial_size = opt['dataset']['train']['gt_crop_size']
 
-
     if net_D_opt['name'].lower() == 'stnet':  # spatio-temporal discriminator
-        from .tecogan_nets import SpatioTemporalDiscriminator
+        from .discriminator_nets import SpatioTemporalDiscriminator
         net_D = SpatioTemporalDiscriminator(
             in_nc=net_D_opt['in_nc'],
             spatial_size=spatial_size,
-            tempo_range=net_D_opt['tempo_range'])
+            tempo_range=net_D_opt['tempo_range'],
+            spectral_norm=net_D_opt.get('spectral_norm', False))
 
     elif net_D_opt['name'].lower() == 'snet':  # spatial discriminator
-        from .tecogan_nets import SpatialDiscriminator
+        from .discriminator_nets import SpatialDiscriminator
         net_D = SpatialDiscriminator(
             in_nc=net_D_opt['in_nc'],
             spatial_size=spatial_size,

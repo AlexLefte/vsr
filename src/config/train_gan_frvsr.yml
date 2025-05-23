@@ -1,0 +1,227 @@
+# basic configs
+scale: 4
+manual_seed: 0
+verbose: true
+gt_bit_depth: 8
+
+# dataset configs
+dataset:
+  degradation:
+    type: BI
+    sigma: 1.5
+
+  # ---- Vimeo90K ---- #
+  # train:
+  #   name: Vimeo90K_train
+  #   gt_seq_dir: datasets/Vimeo90K/lmdb/V90K_train_GT.lmdb
+  #   lr_seq_dir: datasets/Vimeo90K/lmdb/V90K_train_LR_BI.lmdb
+  #   filter_file: ~
+  #   data_type: rgb
+  #   gt_crop_size: 192
+  #   batch_size: 12
+  #   num_workers: 4
+  #   pin_memory: true
+  #   clip_length: 7
+
+  # test:
+  #   name: Vimeo90K_val
+  #   gt_seq_dir: datasets/Vimeo90K/lmdb/V90K_val_GT.lmdb
+  #   lr_seq_dir: datasets/Vimeo90K/lmdb/V90K_val_LR_BI.lmdb
+  #   filter_file: ~
+  #   data_type: rgb
+  #   num_workers: 0
+  #   pin_memory: true
+
+  # test_vid4:
+  #   name: Vid4
+  #   gt_seq_dir: datasets/Vid4/GT 
+  #   lr_seq_dir: datasets/Vid4/BIx4
+  #   data_type: rgb
+  #   filter_file: ~
+  #   num_workers: 0
+  #   pin_memory: true
+  
+  train:
+    name: ICMP_train
+    gt_seq_dir: datasets/MicrosoftVSR/lmdb/MS_train_GT.lmdb
+    lr_seq_dir: datasets/MicrosoftVSR/lmdb/MS_train_LR_mixed.lmdb
+    filter_file: ~
+    data_type: rgb
+    gt_crop_size: 192
+    batch_size: 12
+    num_workers: 4
+    pin_memory: true
+    clip_length: 7
+
+  # ---- ICMP ---- # 
+  test_qp_17:
+    name: ICMP_17
+    gt_seq_dir: datasets/MicrosoftVSR/lmdb/MS_val_GT.lmdb
+    lr_seq_dir: datasets/MicrosoftVSR/lmdb/MS_val_LR_17.lmdb
+    data_type: rgb
+    filter_file: ~
+    num_workers: 0
+    pin_memory: true
+
+  test_qp_22:
+    name: ICMP_22
+    gt_seq_dir: datasets/MicrosoftVSR/lmdb/MS_val_GT.lmdb
+    lr_seq_dir: datasets/MicrosoftVSR/lmdb/MS_val_LR_22.lmdb
+    data_type: rgb
+    filter_file: ~
+    num_workers: 0
+    pin_memory: true
+
+  test_qp_27:
+    name: ICMP_27
+    gt_seq_dir: datasets/MicrosoftVSR/lmdb/MS_val_GT.lmdb
+    lr_seq_dir: datasets/MicrosoftVSR/lmdb/MS_val_LR_27.lmdb
+    data_type: rgb
+    filter_file: ~
+    num_workers: 0
+    pin_memory: true
+
+  test_qp_34:
+    name: ICMP_34
+    gt_seq_dir: datasets/MicrosoftVSR/lmdb/MS_val_GT.lmdb
+    lr_seq_dir: datasets/MicrosoftVSR/lmdb/MS_val_LR_34.lmdb
+    data_type: rgb
+    filter_file: ~
+    num_workers: 0
+    pin_memory: true
+
+  test_qp_37:
+    name: ICMP_37
+    gt_seq_dir: datasets/MicrosoftVSR/lmdb/MS_val_GT.lmdb
+    lr_seq_dir: datasets/MicrosoftVSR/lmdb/MS_val_LR_37.lmdb
+    data_type: rgb
+    filter_file: ~
+    num_workers: 0
+    pin_memory: true
+  # ---------------- #
+
+# model configs
+model:
+  name: TecoGAN
+
+  generator:
+    name: EGVSR # efficient GAN-based generator
+    in_nc: 3
+    out_nc: 3
+    nf: 64
+    nb: 12
+    with_tsa: False
+    upsample_func: bicubic
+    transp_conv: False
+    shallow_feat_res: False
+    load_path: experiments/frvsr_12/train/ckpt/G_iter210000.pth
+    reconstruction_path: ~
+    # reconstruction_path: experiments/srresnet_16/train/ckpt/G_iter170000.pth
+    # load_path: pretrained_models/EGVSR_iter420000.pth
+
+  discriminator:
+    name: STNet
+    in_nc: 3
+    tempo_range: 3
+    load_path: ~
+    spectral_norm: True
+
+# training configs
+train:
+  tempo_extent: 7
+  start_iter: 0
+  total_iter: 300000
+
+  # configs for generator
+  generator:
+    lr: !!float 1e-4
+    lr_schedule:
+      type: MultiStepLR
+      milestones: [100000, 150000, 200000]
+      gamma: 0.5
+    beta1: 0.9
+    beta2: 0.999
+
+  # configs for discriminator
+  discriminator:
+    update_policy: adaptive
+    update_threshold: 0.4
+    crop_border_ratio: 0.75
+    lr: !!float 5e-5
+    lr_schedule:
+      type: FixedLR
+    beta1: 0.9
+    beta2: 0.999
+
+  # other configs
+  moving_first_frame: true
+  moving_factor: 0.7
+
+  # criterions
+  pixel_crit:
+    type: CB
+    weight: 1
+    reduction: mean
+
+  warping_crit:
+    type: CB
+    weight: 1
+    reduction: mean
+
+  feature_crit:
+    type: L1
+    weight: 0.01
+    reduction: mean
+    feature_layers: [2, 7, 16, 25, 34]  # "conv1_2", "conv2_2", "conv3_4", "conv4_4", "conv5_4" - before ReLU
+    feature_weights: [0.1, 0.1, 1, 1, 1]
+
+  gan_crit:
+    type: WPGAN
+    weight: 0.01
+    reduction: mean
+    gp_lambda: 10
+
+
+# validation configs
+test:
+  tempo_extent: 7
+  test_freq: 20000
+
+  # whether to save the generated SR results
+  save_res: false
+  res_dir: ~   # use default dir
+
+  # whether to save the test results in a json file
+  save_json: true
+  json_dir: ~  # use default dir
+
+  padding_mode: reflect
+  num_pad_front: 5
+
+
+# metric configs
+metric:
+  PSNR:
+    colorspace: y
+    mult: 1.0
+
+  SSIM:
+    mult: 1.0
+
+  LPIPS:
+    model: net-lin
+    net: alex
+    colorspace: rgb
+    spatial: false
+    version: 0.1
+    mult: 1.0
+
+  # tOF:
+  #   mult: 1.0
+
+# logger configs
+logger:
+  tb_freq: 1000
+  log_freq: 100
+  decay: 0.99
+  ckpt_freq: 5000

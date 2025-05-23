@@ -3,31 +3,28 @@ import torch.nn as nn
 import torch.nn.functional as F
 from models.networks.base_nets import BaseSequenceDiscriminator
 from utils.net_utils import backward_warp
+from torch.nn.utils import spectral_norm
 
 
 class DiscriminatorBlocks(nn.Module):
-    def __init__(self):
+    def __init__(self, spectral_norm=False):
         super(DiscriminatorBlocks, self).__init__()
 
-        self.block1 = nn.Sequential(  # /2
-            nn.Conv2d(64, 64, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(64, affine=True),
-            nn.LeakyReLU(0.2, inplace=True))
+        print(f"Using spectral norm: {spectral_norm}.")
+        self.spectral_norm = spectral_norm
+        self.block1 = self.make_conv_block(64, 64)  # /2
+        self.block2 = self.make_conv_block(64, 64)  # /4
+        self.block3 = self.make_conv_block(64, 128)  # /8
+        self.block4 = self.make_conv_block(128, 256)  # /16
 
-        self.block2 = nn.Sequential(  # /4
-            nn.Conv2d(64, 64, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(64, affine=True),
-            nn.LeakyReLU(0.2, inplace=True))
-
-        self.block3 = nn.Sequential(  # /8
-            nn.Conv2d(64, 128, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(128, affine=True),
-            nn.LeakyReLU(0.2, inplace=True))
-
-        self.block4 = nn.Sequential(  # /16
-            nn.Conv2d(128, 256, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(256, affine=True),
-            nn.LeakyReLU(0.2, inplace=True))
+    def make_conv_block(self, in_ch, out_ch):
+        conv = nn.Conv2d(in_ch, out_ch, kernel_size=4, stride=2,
+                         padding=1, bias=False)
+        if self.spectral_norm:
+            conv = spectral_norm(conv)
+        layers = [conv]
+        layers.append(nn.LeakyReLU(0.2, inplace=True))
+        return nn.Sequential(*layers)
 
     def forward(self, x):
         out1 = self.block1(x)
@@ -35,7 +32,6 @@ class DiscriminatorBlocks(nn.Module):
         out3 = self.block3(out2)
         out4 = self.block4(out3)
         feature_list = [out1, out2, out3, out4]
-
         return out4, feature_list
 
 
@@ -43,7 +39,7 @@ class SpatioTemporalDiscriminator(BaseSequenceDiscriminator):
     """ Spatio-Temporal discriminator in proposed in TecoGAN
     """
 
-    def __init__(self, in_nc=3, spatial_size=128, tempo_range=3, scale=4):
+    def __init__(self, in_nc=3, spatial_size=128, tempo_range=3, scale=4, spectral_norm=False):
         super(SpatioTemporalDiscriminator, self).__init__()
 
         # basic settings
@@ -59,7 +55,7 @@ class SpatioTemporalDiscriminator(BaseSequenceDiscriminator):
             nn.LeakyReLU(0.2, inplace=True))
 
         # discriminator block
-        self.discriminator_block = DiscriminatorBlocks()  # downsample 16x
+        self.discriminator_block = DiscriminatorBlocks(spectral_norm=spectral_norm)  # downsample 16x
 
         # classifier
         self.dense = nn.Linear(256 * spatial_size // 16 * spatial_size // 16, 1)
@@ -163,7 +159,8 @@ class SpatioTemporalDiscriminator(BaseSequenceDiscriminator):
 
         # construct output dict (return other data beside pred)
         ret_dict = {
-            'hr_flow_merge': hr_flow_merge
+            'hr_flow_merge': hr_flow_merge,
+            'input_data': input_data
         }
 
         return pred, ret_dict
