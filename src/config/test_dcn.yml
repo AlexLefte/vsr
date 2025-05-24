@@ -1,0 +1,80 @@
+# basic configs
+scale: 4
+manual_seed: 0
+verbose: false
+gt_bit_depth: 8
+
+# dataset configs
+dataset:
+  degradation:
+    type: BI
+    sigma: 1.5
+
+  # test1:
+  #   name: Vimeo90K_test
+  #   gt_seq_dir: datasets/Vimeo90K/raw/vimeo_septuplet/test
+  #   lr_seq_dir: datasets/Vimeo90K/raw/lr/test
+  #   filter_file: ~
+  #   data_type: rgb
+  #   num_workers: 0
+  #   pin_memory: true
+  
+  test2:
+    name: Vid4
+    gt_seq_dir: datasets/Vid4/GT
+    lr_seq_dir: datasets/Vid4/LR
+    # lr_seq_dir: datasets/Vid4/BIx4
+    filter_file: ~
+    data_type: rgb
+    num_workers: 0
+    pin_memory: true
+
+# model configs
+model:
+  name: FRVSR
+
+  generator:
+    name: DcnVSR  # efficient GAN-based generator
+    in_nc: 3
+    out_nc: 3
+    nf: 64
+    nb: 12
+    win_size: 3
+    num_deform_groups: 3
+    with_tsa: False
+    upsample_func: bicubic
+    transp_conv: False
+    shallow_feat_res: False
+    load_path: weights/dcn_12.pth
+    # load_path: experiments/frvsr_8/train/ckpt/G_iter200000.pth
+    reconstuction_path: ~
+
+# test configs
+test:
+  # whether to save the SR results
+  save_res: false
+  res_dir: results
+
+  # temporal padding
+  padding_mode: reflect
+  num_pad_front: 3
+
+# metric configs
+metric:
+  PSNR:
+    colorspace: y
+    mult: 1.0
+
+  SSIM:
+    mult: 1.0
+
+  LPIPS:
+    model: net-lin
+    net: alex
+    colorspace: rgb
+    spatial: false
+    version: 0.1
+    mult: 1.0
+
+  tOF:
+    mult: 1.0
