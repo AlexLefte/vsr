@@ -16,20 +16,20 @@ def resize_and_save_images(src_dir, dst_dir, scale=0.25,
 
     interp_method = interpolation_methods[interpolation]
 
-    # clips = sorted(os.listdir(src_dir))
+    clips = sorted(os.listdir(src_dir))
     
-    # Iterăm toate subfolderele
-    clips = []
-    from collections import defaultdict
-    clip_dict = defaultdict(list)
-    max_subclips=20
-    for folder_name in sorted(os.listdir(src_dir)):
-        if os.path.isdir(os.path.join(src_dir, folder_name)) and '_' in folder_name:
-            clip_id, subclip_id = folder_name.split('_', 1)
+    # # Iterăm toate subfolderele
+    # clips = []
+    # from collections import defaultdict
+    # clip_dict = defaultdict(list)
+    # max_subclips=20
+    # for folder_name in sorted(os.listdir(src_dir)):
+    #     if os.path.isdir(os.path.join(src_dir, folder_name)) and '_' in folder_name:
+    #         clip_id, subclip_id = folder_name.split('_', 1)
 
-            if len(clip_dict[clip_id]) < max_subclips:
-                clip_dict[clip_id].append(folder_name)
-                clips.append(folder_name)
+    #         if len(clip_dict[clip_id]) < max_subclips:
+    #             clip_dict[clip_id].append(folder_name)
+    #             clips.append(folder_name)
 
 
     for clip in clips:
@@ -56,8 +56,8 @@ def resize_and_save_images(src_dir, dst_dir, scale=0.25,
 
 if __name__ == "__main__":
     resize_and_save_images(
-        src_dir=r'C:\Users\aleft\Documents\vsr_datasets\Vimeo90K\GT\val',
-        dst_dir=r'C:\Users\aleft\Documents\vsr_datasets\Vimeo90K\LR\val',
+        src_dir=r'datasets/Vid4/GT',
+        dst_dir=r'datasets/Vid4/LR_BI_x4',
         scale=0.25,          
         interpolation='bicubic'          
     )

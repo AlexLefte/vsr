@@ -6,7 +6,7 @@ import torch.optim as optim
 from .vsr_model import VSRModel
 from .networks import define_generator, define_discriminator
 from .networks.vgg_nets import VGGFeatureExtractor
-from optim.losses import compute_gradient_penalty
+from .optim.losses import compute_gradient_penalty
 from .optim import define_criterion, define_lr_schedule
 from utils import net_utils
 
