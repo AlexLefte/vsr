@@ -37,7 +37,7 @@ def define_generator(opt):
             shallow_feat_res=net_G_opt.get('shallow_feat_res', False),
             with_tsa=net_G_opt.get('with_tsa', False))     
     elif net_G_opt['name'].lower() == 'dcnvsr':  # Deformable conv VSR generator
-        from .dcn_vsr import DcnVSR
+        from .dcn_net import DcnVSR
         net_G = DcnVSR(
             in_channels=net_G_opt['in_nc'],
             out_channels=net_G_opt['out_nc'],

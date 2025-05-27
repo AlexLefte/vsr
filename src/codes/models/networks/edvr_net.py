@@ -287,33 +287,12 @@ class EDVRNet(nn.Module):
         
         return np.stack(hr_seq).transpose(0, 2, 3, 1)
 
+    def generate_dummy_input(self, lr_size):
+        # Input video dummy: (B=1, T=5 frames)
+        c, lr_h, lr_w = lr_size
+        dummy_input = torch.randn(5, c, lr_w, lr_h, dtype=torch.float32)
+        dummy_input = dummy_input.unsqueeze(dim=0)
 
-def test_edvr_inference_speed(with_tsa=True):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = EDVRNet(with_tsa=with_tsa).to(device)
-    model.eval()
-
-    # Input video dummy: (B=1, T=5 frames, C=3, H=64, W=64)
-    dummy_input = torch.randn(1, 5, 3, 64, 64).to(device)
-
-    # Warm-up
-    for _ in range(5):
-        _ = model(dummy_input)
-
-    # Măsurare timp inferență
-    torch.cuda.synchronize()
-    start_time = time.time()
-    with torch.no_grad():
-        for _ in range(10):  # rulăm de mai multe ori pentru medie
-            _ = model(dummy_input)
-    torch.cuda.synchronize()
-    end_time = time.time()
-
-    avg_time = (end_time - start_time) / 10
-    print(f"Average inference time per forward pass: {avg_time:.4f} seconds")
-
-
-
-if __name__ == "__main__":
-    # Run an inference test speed
-    test_edvr_inference_speed()
+        return {
+            'x': dummy_input
+        }

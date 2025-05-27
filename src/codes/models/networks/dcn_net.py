@@ -132,6 +132,41 @@ class DcnVSR(nn.Module):
         self.activation = self.align_net.activation
         self.conv_first = self.align_net.conv_first
         self.residual_layer = self.align_net.residual_layer
+        self.cached_feats = None
+
+    def forward(self, x):
+        B, N, C, H, W = x.size()
+        center_idx = N // 2
+
+        if hasattr(self, 'cached_feats') and self.cached_feats is not None:
+            # Extrage caracteristici doar pentru ultimul frame (cel nou venit)
+            new_frame = x[:, -1, :, :, :]  # (B, C, H, W)
+            new_feat = self.activation(self.conv_first(new_frame))
+            new_feat = self.residual_layer(new_feat)
+            new_feat = new_feat.unsqueeze(1)  # (B, 1, feat_channels, H, W)
+
+            # Concatenează feat-urile cache-uite cu cel nou
+            feats = torch.cat([self.cached_feats, new_feat], dim=1)  # (B, N, feat_channels, H, W)
+        else:
+            # Pentru prima fereastră, calculează feat-uri pentru toate cadrele
+            x_flat = x.view(-1, C, H, W)  # (B*N, C, H, W)
+            feats = self.activation(self.conv_first(x_flat))
+            feats = self.residual_layer(feats)
+            feats = feats.view(B, N, -1, H, W)  # (B, N, feat_channels, H, W)
+
+        # Actualizează cache-ul cu ultimele N-1 feat-uri (detach pentru a nu propaga gradientul înapoi)
+        self.cached_feats = feats[:, 1:, :, :, :].detach()
+
+        # Frame-ul central LR din fereastră
+        x_center = x[:, center_idx, :, :, :]
+
+        # Aliniază folosind feat-urile și frame-ul central
+        aligned = self.align_net(feats, x_center)  # (B, N, C, H, W)
+
+        # Super-rezoluează frame-ul central folosind cadrele aliniate
+        out = self.srnet(aligned.view(B, -1, H, W), x_center)
+
+        return out
 
     def forward_sequence(self, x):
         """
@@ -258,5 +293,15 @@ class DcnVSR(nn.Module):
             hr_data = np.stack(outputs)  
         
         # Cleanup
-        del x, x_padded, x_flat, features, x_window, features_window, x_center, aligned_frames, out_frame
+        # del x, x_padded, x_flat, features, x_window, features_window, x_center, aligned_frames, out_frame
         return hr_data.transpose(0, 2, 3, 1)
+    
+    def generate_dummy_input(self, lr_size):
+        # Input video dummy: (B=1, T=3 frames)
+        c, lr_h, lr_w = lr_size
+        dummy_input = torch.randn(3, c, lr_w, lr_h, dtype=torch.float32)
+        dummy_input = dummy_input.unsqueeze(dim=0)
+
+        return {
+            'x': dummy_input
+        }
