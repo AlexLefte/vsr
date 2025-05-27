@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import tqdm
-from models.networks.egvsr_nets import ResidualBlock
+from models.networks.srnet import ResidualBlock
 from models.networks.modules.pcda_module import PCDAlignment
 from models.networks.modules.tsa_module import TSAFusion
 from time import time
@@ -156,29 +156,12 @@ class EDVRNet(nn.Module):
         hr_data = torch.stack(outputs, dim=1)
         # print(f"HR data shape: {hr_data.shape}")
 
-        # # Save the input patches and the hr data for a sanity check
-        # import cv2
-        # import numpy as np
-        # for i in range(B):
-        #     for j, img in enumerate(x[i]):
-        #         print(img.shape)
-        #         cv2.imwrite(f"test_images/img_{i}_{j}.png", (img.cpu().numpy().transpose((1, 2, 0))* 255).astype(np.uint8))
-        #     for j, img in enumerate(x_padded[i]):
-        #         print(img.shape)
-        #         cv2.imwrite(f"test_images/img_padded_{i}_{j}.png", (img.cpu().numpy().transpose((1, 2, 0)) * 255).astype(np.uint8))
-
         return {
             'hr_data': hr_data,  # n,t,c,hr_h,hr_w
         }
     
     def forward(self, x):
         b, t, c, h, w = x.size()
-        # print(f'Input size: {x.shape}')
-        # if self.hr_in:
-        #     assert h % 16 == 0 and w % 16 == 0, ('The height and width must be multiple of 16.')
-        # else:
-        #     assert h % 4 == 0 and w % 4 == 0, ('The height and width must be multiple of 4.')
-
         # Extract pyramidal features for each frame
         # L1
         feat_l1 = self.lrelu(self.conv_first(x.reshape(-1, c, h, w)))

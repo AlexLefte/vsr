@@ -1,0 +1,76 @@
+# basic configs
+scale: 4
+manual_seed: 0
+verbose: false
+gt_bit_depth: 8
+
+# dataset configs
+dataset:
+  degradation:
+    type: BI
+    sigma: 1.5
+
+  test1:
+    name: Vimeo90K_test
+    gt_seq_dir: C:/Users/aleft/Documents/vsr_datasets/Vimeo90K/GT/test
+    lr_seq_dir: C:/Users/aleft/Documents/vsr_datasets/Vimeo90K/LR/test
+    filter_file: ~
+    data_type: rgb
+    num_workers: 0
+    pin_memory: true
+  
+  test2:
+    name: Vid4
+    gt_seq_dir: C:/Users/aleft/Documents/vsr_datasets/Vid4/GT
+    lr_seq_dir: C:/Users/aleft/Documents/vsr_datasets/Vid4/LR
+    filter_file: ~
+    data_type: rgb
+    num_workers: 0
+    pin_memory: true
+
+
+# model configs
+model:
+  name: ISR
+
+  generator:
+    name: SrResNet  # efficient GAN-based generator
+    in_nc: 3
+    out_nc: 3
+    nf: 64
+    nb: 12
+    upsample_func: bicubic
+    transp_conv: False
+    load_path: weights/srnet_12_bicubic.pth
+    reconstuction_path: ~
+
+# test configs
+test:
+  # whether to save the SR results
+  save_res: false
+  res_dir: results
+
+  # temporal padding
+  padding_mode: reflect
+  num_pad_front: 5
+  tempo_extent: 0
+
+# metric configs
+metric:
+  PSNR:
+    colorspace: y
+    mult: 1.0
+
+  # SSIM:
+  #   mult: 1.0
+
+  # LPIPS:
+  #   model: net-lin
+  #   net: alex
+  #   colorspace: rgb
+  #   spatial: false
+  #   version: 0.1
+  #   mult: 1.0
+
+  # tOF:
+  #   mult: 1.0

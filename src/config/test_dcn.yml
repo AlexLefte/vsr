@@ -46,7 +46,6 @@ model:
     transp_conv: False
     shallow_feat_res: False
     load_path: weights/dcn_12.pth
-    # load_path: experiments/frvsr_8/train/ckpt/G_iter200000.pth
     reconstuction_path: ~
 
 # test configs

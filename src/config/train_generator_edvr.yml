@@ -1,0 +1,154 @@
+# basic configs
+scale: 4
+manual_seed: 0
+verbose: true
+gt_bit_depth: 8
+
+# dataset configs
+dataset:
+  degradation:
+    type: BD
+    sigma: 1.5
+
+  train:
+    name: DF2_train
+    gt_seq_dir: /dataset # Either lmdb or folder
+    lr_seq_dir: /dataset
+    filter_file: ~
+    data_type: rgb
+    gt_crop_size: 256
+    batch_size: 4
+    num_workers: 4
+    pin_memory: true
+    clip_length: 24
+ 
+  test_transformers:
+    name: Dataset Name
+    gt_seq_dir: /dataset
+    lr_seq_dir: /dataset
+    filter_file: ~
+    num_workers: 0
+    pin_memory: true
+    clip_length: 24
+
+
+# model configs
+model:
+  name: FRVSR
+
+  generator:
+    name: EDVR  # efficient GAN-based generator
+    in_nc: 3
+    out_nc: 3
+    nf: 64
+    ### EDVR only ###
+    num_frames: 5  
+    def_groups: 8
+    num_extract: 5
+    res_frame_idx: 2
+    hr_in: True  # Residual connection with bicubic upsampled LR input
+    with_tsa: True
+    upsample_func: 'bicubic'
+    #################
+    nb: 10
+    load_path: weights/v90k/edvr_10_v90k.pth
+
+  discriminator:
+    name: None  # None
+    in_nc: 3
+    tempo_range: 3
+    load_path: ~
+
+
+# training configs
+train:
+  tempo_extent: 10
+  start_iter: 0
+  total_iter: 500000
+
+  # configs for generator
+  generator:
+    lr: !!float 5e-5
+    lr_schedule:
+      type: MultiStepLR
+      milestones: [50000, 100000, 150000]
+      gamma: 0.5
+    beta1: 0.9
+    beta2: 0.999
+
+  # other configs
+  moving_first_frame: true
+  moving_factor: 0.7
+
+  # criterions
+  pixel_crit:
+    type: CB
+    weight: 1
+    reduction: mean
+
+  # warping_crit:  # For the moment only for frvsr model
+  #   type: CB
+  #   weight: 1
+  #   reduction: mean
+
+  feature_crit:
+    type: L1
+    weight: 0.01
+    reduction: mean
+    feature_layers: [2, 7, 16, 25, 34]  # "conv1_2", "conv2_2", "conv3_4", "conv4_4", "conv5_4" - before ReLU
+    feature_weights: [0.1, 0.1, 1, 1, 1]
+
+  # pingpong_crit:
+  #   type: CB
+  #   weight: 0.5
+  #   reduction: mean
+
+  # gan_crit:
+  #   type: GAN
+  #   weight: 0.01
+  #   reduction: mean
+
+
+# validation configs
+test:
+  tempo_extent: 24
+  test_freq: 5000
+
+  # whether to save the generated SR results
+  save_res: false
+  res_dir: ~   # use default dir
+
+  # whether to save the test results in a json file
+  save_json: true
+  json_dir: ~  # use default dir
+
+  padding_mode: reflect
+  num_pad_front: 5
+
+
+# metric configs
+metric:
+  PSNR:
+    colorspace: rgb
+    mult: 1.0
+
+  LPIPS:
+    model: net-lin
+    net: alex
+    colorspace: rgb
+    spatial: false
+    version: 0.1
+    mult: 1.0
+
+  SSIM:
+    mult: 1.0
+
+  # tOF:
+  #   mult: 1.0
+
+# logger configs
+logger:
+  tb_freq: 500
+  log_freq: 100
+  decay: 0.99
+  ckpt_freq: 5000
