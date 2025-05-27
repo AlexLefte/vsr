@@ -168,18 +168,18 @@ LMDB databases store all frames in a compact format, improving data loading spee
     ```
     Parameters explained:
 
-    * --dataset: Name of your dataset (used for metadata).
+    * `--dataset`: Name of your dataset (used for metadata).
 
-    * --raw_dir: Path to the folder containing raw .png sequences (HR or LR).
+    * `--raw_dir`: Path to the folder containing raw .png sequences (HR or LR).
 
-    * --lmdb_dir: Destination path to save the LMDB database.
+    * `--lmdb_dir`: Destination path to save the LMDB database.
 
 
-    * --split_ratio (optional): Split each frame spatially into H x W subregions (e.g., 2_2 splits each frame into 4 quarters). Requires --split to be enabled.
+    * `--split_ratio` (optional): Split each frame spatially into H x W subregions (e.g., 2_2 splits each frame into 4 quarters). Requires --split to be enabled.
 
-    * --split (flag): Enable spatial splitting of frames into multiple smaller clips.
+    * `--split` (flag): Enable spatial splitting of frames into multiple smaller clips.
 
-    * --downsample (flag): Downsample images by a factor of 4 before saving (useful if your hardware requires it).
+    * `--downsample` (flag): Downsample images by a factor of 4 before saving (useful if your hardware requires it).
 
     Notes:
 
