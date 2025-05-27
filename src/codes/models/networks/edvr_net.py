@@ -54,6 +54,8 @@ class EDVRNet(nn.Module):
 
     ``Paper: EDVR: Video Restoration with Enhanced Deformable Convolutional Networks``
 
+    ``Github: https://github.com/xinntao/EDVR``
+
     Args:
         num_in_ch (int): Channel number of input image. Default: 3.
         num_out_ch (int): Channel number of output image. Default: 3.

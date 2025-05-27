@@ -45,7 +45,7 @@ model:
     upsample_func: bicubic
     transp_conv: False
     shallow_feat_res: False
-    load_path: weights/dcn_12.pth
+    load_path: weights/v90k/dcn_12_v90k.pth
     reconstuction_path: ~
 
 # test configs

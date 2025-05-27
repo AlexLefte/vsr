@@ -12,6 +12,8 @@ class DCNv2(nn.Module):
     features to generate offsets and masks.
 
     ``Paper: Delving Deep into Deformable Alignment in Video Super-Resolution``
+
+    ``Github: https://github.com/xinntao/EDVR``
     """
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1,
                  padding=1, dilation=1, deformable_groups=1, groups=1, use_bias=True):

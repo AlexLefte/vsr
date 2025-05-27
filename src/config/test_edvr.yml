@@ -46,7 +46,7 @@ model:
     with_tsa: True
     upsample_func: bicubic
     nb: 10
-    load_path: weights/edvr_10.pth
+    load_path: weights/v90k/edvr_10_v90k.pth
     reconstuction_path: ~
 
 # test configs

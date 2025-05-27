@@ -37,10 +37,11 @@ model:
     in_nc: 3
     out_nc: 3
     nf: 64
-    nb: 10
+    nb: 12
     upsample_func: bicubic
     transp_conv: False
-    load_path: /home/alex/Projects/vsr/experiments/EGVSR_first_training/train/ckpt/G_iter85000.pth
+    shallow_feat_res: False
+    load_path: weights/v90k/frvsr_12_v90k.pth
     reconstuction_path: ~
 
 # test configs

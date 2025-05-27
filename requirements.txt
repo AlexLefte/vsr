@@ -1,0 +1,16 @@
+lmdb
+lpips
+matplotlib
+natsort
+numpy
+opencv-python
+pillow
+PyYAML
+requests
+scikit-image
+scipy
+tensorboard
+torch==2.7.0+cu126
+torchaudio==2.7.0+cu126
+torchvision==0.22.0+cu126
+tqdm

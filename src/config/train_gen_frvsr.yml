@@ -12,44 +12,34 @@ dataset:
 
   train:
     name: Vimeo90K_train
-    gt_seq_dir: datasets/Vimeo90K/lmdb/V90K_train_GT.lmdb
-    lr_seq_dir: datasets/Vimeo90K/lmdb/V90K_train_LR_BI.lmdb
-    # gt_seq_dir: ../data/RPO_UHD_16.lmdb   # PairedLmdbDataset
-    # lr_seq_dir: ../data/RPO_DVD_16.lmdb   # PairedFolderDataset
+    gt_seq_dir: C:/Users/aleft/Documents/vsr_datasets/Vimeo90K/GT/train
+    lr_seq_dir: C:/Users/aleft/Documents/vsr_datasets/Vimeo90K/LR/train
     filter_file: ~
     data_type: rgb
     gt_crop_size: 192
     batch_size: 8
-    num_workers: 0
+    num_workers: 4
     pin_memory: true
     clip_length: 7
 
   test:
     name: Vimeo90K_val
-    gt_seq_dir: datasets/Vimeo90K/lmdb/V90K_val_GT.lmdb
-    lr_seq_dir: datasets/Vimeo90K/lmdb/V90K_val_LR_BI.lmdb
-    # gt_seq_dir: ../data/transformers_light_UHD.lmdb  # PairedLmdbDataset
-    # lr_seq_dir: ../data/transformers_light_DVD.lmdb
-    # gt_seq_dir: ../data/Transformers_light/UHD  # PairedFolderDataset
-    # lr_seq_dir: ../data/Transformers_light/DVD
+    gt_seq_dir: C:/Users/aleft/Documents/vsr_datasets/Vimeo90K/GT/val 
+    lr_seq_dir: C:/Users/aleft/Documents/vsr_datasets/Vimeo90K/LR/val
     filter_file: ~
     data_type: rgb
     num_workers: 0
     pin_memory: true
     clip_length: 7
 
-  # test_vid4:
-  #   name: Vid4
-  #   gt_seq_dir: C:/Users/aleft/Documents/vsr_datasets/Vid4/GT  
-  #   lr_seq_dir: C:/Users/aleft/Documents/vsr_datasets/Vid4/BIx4
-  #   # gt_seq_dir: ../data/transformers_light_UHD.lmdb  # PairedLmdbDataset
-  #   # lr_seq_dir: ../data/transformers_light_DVD.lmdb
-  #   # gt_seq_dir: ../data/Transformers_light/UHD  # PairedFolderDataset
-  #   # lr_seq_dir: ../data/Transformers_light/DVD
-  #   filter_file: ~
-  #   num_workers: 0
-  #   pin_memory: true
-  #   clip_length: 24
+  test2:
+    name: Vid4
+    gt_seq_dir: datasets/Vid4/GT
+    lr_seq_dir: datasets/Vid4/BIx4
+    filter_file: ~
+    data_type: rgb
+    num_workers: 0
+    pin_memory: true
 
 
 # model configs
@@ -57,16 +47,16 @@ model:
   name: FRVSR
 
   generator:
-    name: EGVSR # efficient GAN-based generator
+    name: egvsr # efficient GAN-based generator
     in_nc: 3
     out_nc: 3
     nf: 64
-    nb: 16
-    upsample_func: bilinear
-    transp_conv: False
-    load_path: ~
-    # reconstruction_path: ~
-    reconstruction_path: experiments/srresnet_16/train/ckpt/G_iter170000.pth
+    nb: 12
+    upsample_func: bicubic
+    transp_conv: True
+    load_path: experiments/frvsr_12_transposed/train/ckpt/G_iter20000.pth
+    reconstruction_path: ~
+    # reconstruction_path: experiments/srresnet_12_continue/train/ckpt/G_iter190000.pth
     # nb: 10
     # load_path: pretrained_models/EGVSR_iter420000.pth
 
@@ -81,15 +71,15 @@ model:
 train:
   tempo_extent: 7
   start_iter: 0
-  total_iter: 100000
+  total_iter: 200000
 
   # configs for generator
   generator:
-    lr: !!float 5e-5
+    lr: !!float 1e-4
     lr_schedule:
-      type: MultiStepLR
-      milestones: [50000]
-      gamma: 0.5
+      type: FixedLR
+      # milestones: [50000]
+      # gamma: 0.5
     beta1: 0.9
     beta2: 0.999
 
@@ -121,16 +111,10 @@ train:
 
   feature_crit:
     type: L1
-    weight: 0.01
+    weight: 0.005
     reduction: mean
     feature_layers: [2, 7, 16, 25, 34]  # "conv1_2", "conv2_2", "conv3_4", "conv4_4", "conv5_4" - before ReLU
     feature_weights: [0.1, 0.1, 1, 1, 1]
-
-  ### From FeiFei article
-  # We train models to perform ×4 and ×8 super-resolution by
-  # minimizing feature reconstruction loss at layer relu2_2 from the VGG-16 loss
-  #######################
-
   # pingpong_crit:
   #   type: CB
   #   weight: 0.5
@@ -145,7 +129,7 @@ train:
 # validation configs
 test:
   tempo_extent: 7
-  test_freq: 10000
+  test_freq: 20000
 
   # whether to save the generated SR results
   save_res: false
@@ -185,4 +169,4 @@ logger:
   tb_freq: 1000
   log_freq: 100
   decay: 0.99
-  ckpt_freq: 10000
+  ckpt_freq: 5000
