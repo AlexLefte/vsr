@@ -16,7 +16,7 @@ sns.set_palette("husl")
 models = [
     "Lanczos",
     "SRNet", 
-    "FNet + SRNet",
+    "FRVSR+",
     "DCNAlignNet + SRNet",
     "EDVR"
 ]
@@ -110,16 +110,16 @@ def create_combined_metrics_plot(dataset="Vimeo90K"):
             else:
                 label = f'{val:.1f}'
             ax.text(bar.get_x() + bar.get_width()/2, height + 0.01,
-                   label, ha='center', va='bottom', fontsize=8, fontweight='bold')
+                   label, ha='center', va='bottom', fontsize=14, fontweight='bold')
     
-    ax.set_xlabel('Models', fontsize=12, fontweight='bold')
-    ax.set_ylabel('Normalized Performance', fontsize=12, fontweight='bold')
-    ax.set_title(title, fontsize=16, fontweight='bold', pad=20)
+    ax.set_xlabel('Models', fontsize=18, fontweight='bold')
+    ax.set_ylabel('Performance', fontsize=18, fontweight='bold')
+    ax.set_title(title, fontsize=18, fontweight='bold', pad=20)
     ax.set_xticks(x + width * 1.5)
     ax.set_xticklabels(models, rotation=15, ha='right')
     ax.legend(loc='upper left', bbox_to_anchor=(0, 1))
     ax.grid(True, axis='y', alpha=0.3)
-    ax.set_ylim(0, 1.2)
+    ax.set_ylim(0, 1 * 1.05)
     
     plt.tight_layout()
     plt.show()
@@ -161,7 +161,7 @@ metrics = {
 fig, ax = plt.subplots(1, 1, figsize=(12, 8))
 
 # Use PSNR as performance metric and FPS as efficiency
-perf_metric = metrics["PSNR (Vimeo90K)"]
+perf_metric = metrics["Params (M)"]
 efficiency = metrics["FPS"]
 params = metrics["Params (M)"]
 
@@ -180,10 +180,10 @@ for i, (model, psnr, fps, param) in enumerate(zip(models, perf_metric, efficienc
     ax.annotate(model, (fps, psnr), xytext=(5, 5), textcoords='offset points',
                fontsize=9, fontweight='bold')
 
-ax.set_xlabel('FPS (Frames Per Second) ↑', fontsize=12, fontweight='bold')
-ax.set_ylabel('PSNR (dB) ↑', fontsize=12, fontweight='bold')
-ax.set_title('Efficiency vs Performance Trade-off\n(Bubble size = Model Parameters)', 
-             fontsize=16, fontweight='bold', pad=20)
+ax.set_xlabel('FPS (Frames Per Second) ↑', fontsize=18, fontweight='bold')
+ax.set_ylabel('Parameters (M)', fontsize=18, fontweight='bold')
+ax.set_title('Efficiency vs Performance Trade-off\n(Bubble size = Parameters)', 
+             fontsize=18, fontweight='bold', pad=20)
 ax.grid(True, alpha=0.3)
 ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
 
@@ -269,11 +269,11 @@ def add_metric_arrows(ax, metric_name, position='top'):
     
     if position == 'top':
         ax.text(0.02, 0.98, arrow, transform=ax.transAxes, 
-                fontsize=11, va='top', ha='left', color=color, fontweight='bold',
+                fontsize=14, va='top', ha='left', color=color, fontweight='bold',
                 bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
     else:
         ax.text(0.98, 0.02, arrow, transform=ax.transAxes, 
-                fontsize=11, va='bottom', ha='right', color=color, fontweight='bold',
+                fontsize=14, va='bottom', ha='right', color=color, fontweight='bold',
                 bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
 
 # ============================================================================
@@ -323,16 +323,16 @@ def create_ablation_metrics_plot(dataset="Vimeo90K"):
             else:
                 label = f'{val:.2f}'
             ax.text(bar.get_x() + bar.get_width()/2, height + 0.01,
-                   label, ha='center', va='bottom', fontsize=7, fontweight='bold', rotation=90)
+                   label, ha='center', va='bottom', fontsize=14, fontweight='bold')
     
-    ax.set_xlabel('Ablation Study Variants', fontsize=12, fontweight='bold')
-    ax.set_ylabel('Normalized Performance', fontsize=12, fontweight='bold')
-    ax.set_title(title, fontsize=16, fontweight='bold', pad=20)
+    ax.set_xlabel('Ablation Study Variants', fontsize=18, fontweight='bold')
+    ax.set_ylabel('Performance', fontsize=18, fontweight='bold')
+    ax.set_title(title, fontsize=18, fontweight='bold', pad=20)
     ax.set_xticks(x + width * 1.5)
     ax.set_xticklabels(models, rotation=25, ha='right')
     ax.legend(loc='upper left', bbox_to_anchor=(0, 1))
     ax.grid(True, axis='y', alpha=0.3)
-    ax.set_ylim(0, 1.3)
+    ax.set_ylim(0, 0.6 * 1.05)
     
     plt.tight_layout()
     plt.show()
@@ -368,12 +368,12 @@ for i, (model, psnr, fps, param) in enumerate(zip(models, perf_metric, efficienc
     offset_x = 1 if fps > 30 else -3
     offset_y = 0.02 if i % 2 == 0 else -0.02
     ax.annotate(model, (fps, psnr), xytext=(offset_x, offset_y), textcoords='offset points',
-               fontsize=8, fontweight='bold', ha='left' if fps > 30 else 'right')
+               fontsize=18, fontweight='bold', ha='left' if fps > 30 else 'right')
 
-ax.set_xlabel('FPS (Frames Per Second) ↑', fontsize=12, fontweight='bold')
-ax.set_ylabel('PSNR (dB) ↑', fontsize=12, fontweight='bold')
+ax.set_xlabel('FPS (Frames Per Second) ↑', fontsize=18, fontweight='bold')
+ax.set_ylabel('Parameters (M)', fontsize=18, fontweight='bold')
 ax.set_title('Ablation Study: Efficiency vs Performance Trade-off\n(Bubble size = Model Parameters)', 
-             fontsize=16, fontweight='bold', pad=20)
+             fontsize=18, fontweight='bold', pad=20)
 ax.grid(True, alpha=0.3)
 ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
 
@@ -399,7 +399,9 @@ ax1.set_xticks(range(len(models)))
 ax1.set_xticklabels(models, rotation=45, ha='right')
 ax1.grid(True, axis='y', alpha=0.3)
 for i, v in enumerate(metrics["PSNR (Vimeo90K)"]):
-    ax1.text(i, v + 0.01, f'{v:.2f}', ha='center', va='bottom', fontweight='bold')
+    ax1.text(i, v + 0.01, f'{v:.2f}', ha='center', va='bottom', fontsize=14, fontweight='bold')
+max_val = max(metrics["PSNR (Vimeo90K)"])
+ax1.set_ylim(0, max_val * 1.05)
 
 # SSIM comparison
 ax2.bar(range(len(models)), metrics["SSIM (Vimeo90K)"], color=colors, alpha=0.8)
@@ -409,8 +411,9 @@ ax2.set_xticks(range(len(models)))
 ax2.set_xticklabels(models, rotation=45, ha='right')
 ax2.grid(True, axis='y', alpha=0.3)
 for i, v in enumerate(metrics["SSIM (Vimeo90K)"]):
-    ax2.text(i, v + 0.001, f'{v:.3f}', ha='center', va='bottom', fontweight='bold')
-
+    ax2.text(i, v + 0.001, f'{v:.3f}', ha='center', va='bottom', fontsize=14, fontweight='bold')
+max_val = max(metrics["SSIM (Vimeo90K)"])
+ax2.set_ylim(0, max_val * 1.05)
 # FPS comparison
 ax3.bar(range(len(models)), metrics["FPS"], color=colors, alpha=0.8)
 ax3.set_title('Speed Comparison', fontsize=14, fontweight='bold')
@@ -419,8 +422,9 @@ ax3.set_xticks(range(len(models)))
 ax3.set_xticklabels(models, rotation=45, ha='right')
 ax3.grid(True, axis='y', alpha=0.3)
 for i, v in enumerate(metrics["FPS"]):
-    ax3.text(i, v + 0.5, f'{v:.1f}', ha='center', va='bottom', fontweight='bold')
-
+    ax3.text(i, v + 0.5, f'{v:.1f}', ha='center', va='bottom', fontsize=14, fontweight='bold')
+max_val = max(metrics["FPS"])
+ax3.set_ylim(0, max_val * 1.05)
 # Parameters comparison
 ax4.bar(range(len(models)), metrics["Params (M)"], color=colors, alpha=0.8)
 ax4.set_title('Model Size Comparison', fontsize=14, fontweight='bold')
@@ -429,8 +433,9 @@ ax4.set_xticks(range(len(models)))
 ax4.set_xticklabels(models, rotation=45, ha='right')
 ax4.grid(True, axis='y', alpha=0.3)
 for i, v in enumerate(metrics["Params (M)"]):
-    ax4.text(i, v + 0.02, f'{v:.2f}', ha='center', va='bottom', fontweight='bold')
-
+    ax4.text(i, v + 0.02, f'{v:.2f}', ha='center', va='bottom', fontsize=14, fontweight='bold')
+max_val = max(metrics["Params (M)"])
+ax4.set_ylim(0, 0.6 * 1.05)
 plt.suptitle('Ablation Study: Component-wise Performance Analysis', fontsize=18, fontweight='bold', y=0.98)
 plt.tight_layout()
 plt.show()
@@ -574,14 +579,14 @@ def create_qp_trends_complete():
 
 def create_model_ranking_analysis():
     """Create ranking analysis across different QP levels"""
-    fig, axes = plt.subplots(2, 3, figsize=(24, 12))
-    
+    fig, axes = plt.subplots(2, 3, figsize=(14, 10))
+
     qp_values = [17, 22, 27, 32, 34, 37]
     metrics = ["PSNR", "SSIM", "LPIPS", "tOF"]
-    
+
     for qp_idx, qp in enumerate(qp_values):
         ax = axes[qp_idx // 3, qp_idx % 3]
-        
+
         # Get data for this QP level
         metric_data = {}
         for metric in metrics:
@@ -589,33 +594,35 @@ def create_model_ranking_analysis():
                 metric_data[metric] = qp_low_metrics[f"{metric} (QP={qp})"]
             else:
                 metric_data[metric] = qp_high_metrics[f"{metric} (QP={qp})"]
-        
+
         # Create grouped bar chart
         x = np.arange(len(models_qp))
         width = 0.2
-        
+
         for i, metric in enumerate(metrics):
             values = metric_data[metric]
-            # Normalize values for better comparison (0-1 scale)
-            if metric in ['PSNR', 'SSIM']:
-                norm_values = [(v - min(values)) / (max(values) - min(values)) for v in values]
-            else:  # Lower is better for LPIPS, tOF
-                norm_values = [1 - (v - min(values)) / (max(values) - min(values)) for v in values]
-            
-            ax.bar(x + i * width, norm_values, width, 
-                  label=metric, alpha=0.8, color=colors_qp[i])
-        
-        ax.set_xlabel('Models', fontweight='bold')
-        ax.set_ylabel('Normalized Performance (0-1)', fontweight='bold')
-        ax.set_title(f'QP = {qp} Performance Comparison', fontweight='bold')
+
+            bars = ax.bar(x + i * width, values, width,
+                          label=metric, alpha=0.8, color=colors_qp[i])
+
+            # Show raw values on top of bars
+            for j, bar in enumerate(bars):
+                height = bar.get_height()
+                fmt = '{:.2f}' if height >= 1 else '{:.3f}'
+                ax.text(bar.get_x() + bar.get_width()/2, height + 0.01,
+                        fmt.format(height), ha='center', va='bottom', fontsize=9, fontweight='bold')
+
+        ax.set_xlabel('Models', fontweight='bold', fontsize=11)
+        ax.set_ylabel('Metric Value', fontweight='bold', fontsize=11)
+        ax.set_title(f'QP = {qp} Performance Comparison', fontweight='bold', fontsize=13)
         ax.set_xticks(x + width * 1.5)
         ax.set_xticklabels([m.replace(' ', '\n') for m in models_qp], rotation=0, fontsize=9)
         ax.legend(fontsize=9)
         ax.grid(True, alpha=0.3, axis='y')
-    
-    plt.suptitle("Model Performance Rankings Across Different Compression Levels", 
-                 fontsize=18, fontweight='bold')
+
+    plt.suptitle("Model Performance Across Compression Levels", fontsize=16, fontweight='bold')
     plt.tight_layout()
+    plt.subplots_adjust(top=0.90)
     plt.show()
 
 # ============================================================================
