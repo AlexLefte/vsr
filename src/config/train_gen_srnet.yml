@@ -60,7 +60,7 @@ model:
   name: ISR
 
   generator:
-    name: SrResNet  # efficient GAN-based generator
+    name: srnet  # efficient GAN-based generator
     in_nc: 3
     out_nc: 3
     nf: 64

@@ -4,7 +4,7 @@ from utils.net_utils import get_upsampling_func
 def define_generator(opt):
     net_G_opt = opt['model']['generator']
 
-    if net_G_opt['name'].lower() == 'srresnet':
+    if net_G_opt['name'].lower() == 'srnet':
         from .srnet import SRNet
         upsample_fn = get_upsampling_func(mode=net_G_opt['upsample_func'])
         net_G = SRNet(
@@ -16,15 +16,6 @@ def define_generator(opt):
             scale=opt['scale'],
             transp_conv=net_G_opt['transp_conv'])
     elif net_G_opt['name'].lower() == 'frnet':  # frame-recurrent generator
-        from .tecogan_nets import FRNet
-        net_G = FRNet(
-            in_nc=net_G_opt['in_nc'],
-            out_nc=net_G_opt['out_nc'],
-            nf=net_G_opt['nf'],
-            nb=net_G_opt['nb'],
-            mode=net_G_opt['upsample_func'],
-            scale=opt['scale'])
-    elif net_G_opt['name'].lower() == 'egvsr':  # efficient GAN-based generator
         from .fr_net import FRNet
         net_G = FRNet(
             in_nc=net_G_opt['in_nc'],
@@ -35,7 +26,7 @@ def define_generator(opt):
             transp_conv=net_G_opt['transp_conv'],
             scale=opt['scale'],
             shallow_feat_res=net_G_opt.get('shallow_feat_res', False),
-            with_tsa=net_G_opt.get('with_tsa', False))     
+            with_tsa=net_G_opt.get('with_tsa', False))   
     elif net_G_opt['name'].lower() == 'dcnvsr':  # Deformable conv VSR generator
         from .dcn_net import DcnVSR
         net_G = DcnVSR(
@@ -61,15 +52,6 @@ def define_generator(opt):
             res_frame_idx=net_G_opt.get('res_frame_idx', None),
             with_tsa=net_G_opt['with_tsa'],
             upsample_func=net_G_opt['upsample_func'])
-    elif net_G_opt['name'].lower() == 'espnet':  # ESPCN generator
-        from .espcn_nets import ESPNet
-        net_G = ESPNet(scale=opt['scale'])
-    elif net_G_opt['name'].lower() == 'vespnet':  # VESPCN generator
-        from .vespcn_nets import VESPNet
-        net_G = VESPNet(scale=opt['scale'], channel=net_G_opt['channel'], depth=net_G_opt['depth'])
-    elif net_G_opt['name'].lower() == 'sofnet':  # SOFVSR generator
-        from .sofvsr_nets import SOFNet
-        net_G = SOFNet(scale=opt['scale'])
     else:
         raise ValueError('Unrecognized generator: {}'.format(
             net_G_opt['name']))

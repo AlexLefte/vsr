@@ -47,7 +47,7 @@ model:
   name: FRVSR
 
   generator:
-    name: egvsr # efficient GAN-based generator
+    name: frnet # efficient GAN-based generator
     in_nc: 3
     out_nc: 3
     nf: 64
