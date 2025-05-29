@@ -27,7 +27,7 @@ def define_criterion(criterion_opt):
 
     elif criterion_opt['type'] == 'WPGAN':
         from .losses import WGANLoss
-        criterion_opt = WGANLoss(lambda_gp=criterion_opt.get('lambda_gp', 10))
+        criterion = WGANLoss(lambda_gp=criterion_opt.get('lambda_gp', 10))
 
     elif criterion_opt['type'] == 'LSGAN':
         from .losses import LSGANLoss
