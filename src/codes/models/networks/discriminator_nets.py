@@ -22,8 +22,7 @@ class DiscriminatorBlocks(nn.Module):
                          padding=1, bias=False)
         if self.spectral_norm:
             conv = spectral_norm(conv)
-        layers = [conv]
-        layers.append(nn.LeakyReLU(0.2, inplace=True))
+        layers = [conv, nn.LeakyReLU(0.2, inplace=True)]
         return nn.Sequential(*layers)
 
     def forward(self, x):

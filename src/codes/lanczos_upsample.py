@@ -1,7 +1,9 @@
+import argparse
 import os
 import cv2
 import lpips
 import numpy as np
+import time
 from pathlib import Path
 from skimage.metrics import structural_similarity as ssim
 from torchvision.transforms.functional import normalize
@@ -63,7 +65,37 @@ def compute_lpips(true_img, pred_img, lpips_model):
         dist = lpips_model(true_tensor, pred_tensor)
     return dist.item()
 
-def upscale_lanczos(opt_path, dest_dir, save_images=True, compute_metrics=True):
+def compute_tOF(true_img, pred_img, true_img_pred, pred_img_pred):
+        true_img_cur = cv2.cvtColor(true_img, cv2.COLOR_RGB2GRAY)
+        pred_img_cur = cv2.cvtColor(pred_img, cv2.COLOR_RGB2GRAY)
+        true_img_pre = cv2.cvtColor(true_img_pred, cv2.COLOR_RGB2GRAY)
+        pred_img_pre = cv2.cvtColor(pred_img_pred, cv2.COLOR_RGB2GRAY)
+
+        # forward flow
+        true_OF = cv2.calcOpticalFlowFarneback(
+            true_img_pre, true_img_cur, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+        pred_OF = cv2.calcOpticalFlowFarneback(
+            pred_img_pre, pred_img_cur, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+
+        # EPE
+        diff_OF = true_OF - pred_OF
+        tOF = np.mean(np.sqrt(np.sum(diff_OF**2, axis=-1)))
+
+        return tOF
+
+def upscale_lanczos(opt_path, dest_dir, save_images=True, compute_metrics=True, test_mode=False):
+    if test_mode:
+        print("[INFO] Running in TEST mode (1000 upscales from 256x256 to 1024x1024)")
+        dummy_img = np.random.randint(0, 256, (256, 256, 3), dtype=np.uint8)
+        total_time = 0
+        for _ in tqdm(range(1000)):
+            start = time.time()
+            _ = cv2.resize(dummy_img, (1024, 1024), interpolation=cv2.INTER_LANCZOS4)
+            total_time += time.time() - start
+        fps = 1000 / total_time
+        print(f"[RESULT] Average FPS (Lanczos, 256x256→1024x1024): {fps:.2f}")
+        return
+
     with open(opt_path, 'r') as f:
         opt = yaml.load(f.read(), Loader=yaml.FullLoader)
 
@@ -89,9 +121,12 @@ def upscale_lanczos(opt_path, dest_dir, save_images=True, compute_metrics=True):
             continue
 
         print(f"[INFO] Processing dataset: {ds_name}")
-        psnr_total, ssim_total, lpips_total = [], [], []
+        psnr_total, ssim_total, lpips_total, tof_total = [], [], [], []
 
         for root, _, files in tqdm(os.walk(lr_dir)):
+            pred_img_prev = None
+            gt_img_prev = None
+
             for file in files:
                 if not file.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.webp')):
                     continue
@@ -108,7 +143,9 @@ def upscale_lanczos(opt_path, dest_dir, save_images=True, compute_metrics=True):
 
                 height, width = img.shape[:2]
                 new_size = (int(width * scale_factor), int(height * scale_factor))
+                start = time.time()
                 upscaled_img = cv2.resize(img, new_size, interpolation=cv2.INTER_LANCZOS4)
+                duration = time.time() - start
 
                 if save_images:
                     cv2.imwrite(str(out_path), upscaled_img)
@@ -124,33 +161,46 @@ def upscale_lanczos(opt_path, dest_dir, save_images=True, compute_metrics=True):
                         print(f"[ERROR] Can't read: {gt_path}")
                         continue
 
-                    gt_img = cv2.resize(gt_img, new_size, interpolation=cv2.INTER_CUBIC)
-
                     try:
                         psnr = compute_psnr(gt_img, upscaled_img, gt_bit_depth)
                         ssim_val = compute_ssim(gt_img, upscaled_img, gt_bit_depth)
                         lpips_val = compute_lpips(gt_img, upscaled_img, lpips_model)
-                        ssim_val = 0
-                        lpips_val = 0
+                        if pred_img_prev is not None and gt_img_prev is not None:
+                            tof_val = compute_tOF(gt_img, upscaled_img, gt_img_prev, pred_img_prev)
+                            tof_total.append(tof_val)
 
                         if not np.isinf(psnr):
                             psnr_total.append(psnr)
                             ssim_total.append(ssim_val)
                             lpips_total.append(lpips_val)
 
-                        # print(f"[METRIC] {relative_path}: PSNR={psnr:.2f}, SSIM={ssim_val:.4f}, LPIPS={lpips_val:.4f}")
                     except Exception as e:
                         print(f"[ERROR] Metric error for {relative_path}: {e}")
+
+                    pred_img_prev, gt_img_prev = upscaled_img, gt_img
 
         if compute_metrics and psnr_total:
             print("\n===== Average Metrics =====")
             print(f"PSNR:  {np.mean(psnr_total):.2f}")
             print(f"SSIM:  {np.mean(ssim_total):.4f}")
             print(f"LPIPS: {np.mean(lpips_total):.4f}")
+            print(f"tOF:   {np.mean(tof_total):.4f}")
 
 
-# Exemplu de rulare
-opt_path = "src/config/test_frvsr.yml"
-destination_folder = 'D:/Repos/sample_vsr/results/'
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Upscale video frames using Lanczos4 interpolation.")
+    parser.add_argument('--opt', type=str, default='src/config/test_frvsr.yml', help='Path to YAML config file.')
+    parser.add_argument('--dest', type=str, default='results/', help='Destination folder for results.')
+    parser.add_argument('--no_save', action='store_true', help='Disable saving of upscaled images.')
+    parser.add_argument('--no_metrics', action='store_true', help='Disable metric computation.')
+    parser.add_argument('--test', action='store_true', help='Run FPS test using dummy images.')
 
-upscale_lanczos(opt_path=opt_path, dest_dir=destination_folder, save_images=False)
+    args = parser.parse_args()
+
+    upscale_lanczos(
+        opt_path=args.opt,
+        dest_dir=args.dest,
+        save_images=not args.no_save,
+        compute_metrics=not args.no_metrics,
+        test_mode=args.test
+    )

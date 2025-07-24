@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import tqdm
-from models.networks.egvsr_nets import ResidualBlock
+from models.networks.srnet import ResidualBlock
 from models.networks.modules.pcda_module import PCDAlignment
 from models.networks.modules.tsa_module import TSAFusion
 from time import time
@@ -53,6 +53,8 @@ class EDVRNet(nn.Module):
     Now only support X4 upsampling factor.
 
     ``Paper: EDVR: Video Restoration with Enhanced Deformable Convolutional Networks``
+
+    ``Github: https://github.com/xinntao/EDVR``
 
     Args:
         num_in_ch (int): Channel number of input image. Default: 3.
@@ -156,29 +158,12 @@ class EDVRNet(nn.Module):
         hr_data = torch.stack(outputs, dim=1)
         # print(f"HR data shape: {hr_data.shape}")
 
-        # # Save the input patches and the hr data for a sanity check
-        # import cv2
-        # import numpy as np
-        # for i in range(B):
-        #     for j, img in enumerate(x[i]):
-        #         print(img.shape)
-        #         cv2.imwrite(f"test_images/img_{i}_{j}.png", (img.cpu().numpy().transpose((1, 2, 0))* 255).astype(np.uint8))
-        #     for j, img in enumerate(x_padded[i]):
-        #         print(img.shape)
-        #         cv2.imwrite(f"test_images/img_padded_{i}_{j}.png", (img.cpu().numpy().transpose((1, 2, 0)) * 255).astype(np.uint8))
-
         return {
             'hr_data': hr_data,  # n,t,c,hr_h,hr_w
         }
     
     def forward(self, x):
         b, t, c, h, w = x.size()
-        # print(f'Input size: {x.shape}')
-        # if self.hr_in:
-        #     assert h % 16 == 0 and w % 16 == 0, ('The height and width must be multiple of 16.')
-        # else:
-        #     assert h % 4 == 0 and w % 4 == 0, ('The height and width must be multiple of 4.')
-
         # Extract pyramidal features for each frame
         # L1
         feat_l1 = self.lrelu(self.conv_first(x.reshape(-1, c, h, w)))
@@ -287,33 +272,12 @@ class EDVRNet(nn.Module):
         
         return np.stack(hr_seq).transpose(0, 2, 3, 1)
 
+    def generate_dummy_input(self, lr_size):
+        # Input video dummy: (B=1, T=5 frames)
+        c, lr_h, lr_w = lr_size
+        dummy_input = torch.randn(5, c, lr_w, lr_h, dtype=torch.float32)
+        dummy_input = dummy_input.unsqueeze(dim=0)
 
-def test_edvr_inference_speed(with_tsa=True):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = EDVRNet(with_tsa=with_tsa).to(device)
-    model.eval()
-
-    # Input video dummy: (B=1, T=5 frames, C=3, H=64, W=64)
-    dummy_input = torch.randn(1, 5, 3, 64, 64).to(device)
-
-    # Warm-up
-    for _ in range(5):
-        _ = model(dummy_input)
-
-    # Măsurare timp inferență
-    torch.cuda.synchronize()
-    start_time = time.time()
-    with torch.no_grad():
-        for _ in range(10):  # rulăm de mai multe ori pentru medie
-            _ = model(dummy_input)
-    torch.cuda.synchronize()
-    end_time = time.time()
-
-    avg_time = (end_time - start_time) / 10
-    print(f"Average inference time per forward pass: {avg_time:.4f} seconds")
-
-
-
-if __name__ == "__main__":
-    # Run an inference test speed
-    test_edvr_inference_speed()
+        return {
+            'x': dummy_input
+        }

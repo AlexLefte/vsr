@@ -105,7 +105,7 @@ model:
   name: TecoGAN
 
   generator:
-    name: EGVSR # efficient GAN-based generator
+    name: frnet # efficient GAN-based generator
     in_nc: 3
     out_nc: 3
     nf: 64

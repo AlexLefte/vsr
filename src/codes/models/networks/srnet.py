@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 from models.networks.modules.tsa_module import TSAFusion
 
@@ -88,3 +89,14 @@ class SRNet(nn.Module):
                     out += self.upsample_func(x)
 
             return out
+    
+    def generate_dummy_input(self, lr_size):
+        c, lr_h, lr_w = lr_size
+        lr_curr = torch.rand(1, c, lr_h, lr_w, dtype=torch.float32)
+
+        data_dict = {
+            'x': lr_curr,
+            'lr': lr_curr,
+        }
+
+        return data_dict

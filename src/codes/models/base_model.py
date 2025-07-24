@@ -86,7 +86,7 @@ class BaseModel():
         pass
 
     def load_network(self, net, load_path):
-        net.load_state_dict(torch.load(load_path), strict=False)
+        net.load_state_dict(torch.load(load_path), strict=True)
 
     def load_reconstruction_block(self, net, reconstruction_path):
         # Load the pretrained block:

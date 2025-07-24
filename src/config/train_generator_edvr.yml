@@ -7,39 +7,29 @@ gt_bit_depth: 8
 # dataset configs
 dataset:
   degradation:
-    type: BI
+    type: BD
     sigma: 1.5
 
   train:
-    name: Vimeo90K_train
-    gt_seq_dir: C:/Users/aleft/Documents/vsr_datasets/Vimeo90K/GT/train
-    lr_seq_dir: C:/Users/aleft/Documents/vsr_datasets/Vimeo90K/LR/train
+    name: DF2_train
+    gt_seq_dir: /dataset # Either lmdb or folder
+    lr_seq_dir: /dataset
     filter_file: ~
     data_type: rgb
-    gt_crop_size: 192
-    batch_size: 8
+    gt_crop_size: 256
+    batch_size: 4
     num_workers: 4
     pin_memory: true
-    clip_length: 7
-
-  test:
-    name: Vimeo90K_val
-    gt_seq_dir: C:/Users/aleft/Documents/vsr_datasets/Vimeo90K/GT/val 
-    lr_seq_dir: C:/Users/aleft/Documents/vsr_datasets/Vimeo90K/LR/val
+    clip_length: 24
+ 
+  test_transformers:
+    name: Dataset Name
+    gt_seq_dir: /dataset
+    lr_seq_dir: /dataset
     filter_file: ~
-    data_type: rgb
     num_workers: 0
     pin_memory: true
-    clip_length: 7
-
-  test2:
-    name: Vid4
-    gt_seq_dir: datasets/Vid4/GT
-    lr_seq_dir: datasets/Vid4/BIx4
-    filter_file: ~
-    data_type: rgb
-    num_workers: 0
-    pin_memory: true
+    clip_length: 24
 
 
 # model configs
@@ -47,21 +37,24 @@ model:
   name: FRVSR
 
   generator:
-    name: frnet # efficient GAN-based generator
+    name: EDVR  # efficient GAN-based generator
     in_nc: 3
     out_nc: 3
     nf: 64
-    nb: 12
-    upsample_func: bicubic
-    transp_conv: True
-    load_path: experiments/frvsr_12_transposed/train/ckpt/G_iter20000.pth
-    reconstruction_path: ~
-    # reconstruction_path: experiments/srresnet_12_continue/train/ckpt/G_iter190000.pth
-    # nb: 10
-    # load_path: pretrained_models/EGVSR_iter420000.pth
+    ### EDVR only ###
+    num_frames: 5  
+    def_groups: 8
+    num_extract: 5
+    res_frame_idx: 2
+    hr_in: True  # Residual connection with bicubic upsampled LR input
+    with_tsa: True
+    upsample_func: 'bicubic'
+    #################
+    nb: 10
+    load_path: weights/v90k/edvr_10_v90k.pth
 
   discriminator:
-    name: None
+    name: None  # None
     in_nc: 3
     tempo_range: 3
     load_path: ~
@@ -69,28 +62,17 @@ model:
 
 # training configs
 train:
-  tempo_extent: 7
+  tempo_extent: 10
   start_iter: 0
-  total_iter: 200000
+  total_iter: 500000
 
   # configs for generator
   generator:
-    lr: !!float 1e-4
-    lr_schedule:
-      type: FixedLR
-      # milestones: [50000]
-      # gamma: 0.5
-    beta1: 0.9
-    beta2: 0.999
-
-  # configs for discriminator
-  discriminator:
-    update_policy: adaptive
-    update_threshold: 0.4
-    crop_border_ratio: 0.75
     lr: !!float 5e-5
     lr_schedule:
-      type: FixedLR
+      type: MultiStepLR
+      milestones: [50000, 100000, 150000]
+      gamma: 0.5
     beta1: 0.9
     beta2: 0.999
 
@@ -104,17 +86,18 @@ train:
     weight: 1
     reduction: mean
 
-  warping_crit:
-    type: CB
-    weight: 1
-    reduction: mean
+  # warping_crit:  # For the moment only for frvsr model
+  #   type: CB
+  #   weight: 1
+  #   reduction: mean
 
   feature_crit:
     type: L1
-    weight: 0.005
+    weight: 0.01
     reduction: mean
     feature_layers: [2, 7, 16, 25, 34]  # "conv1_2", "conv2_2", "conv3_4", "conv4_4", "conv5_4" - before ReLU
     feature_weights: [0.1, 0.1, 1, 1, 1]
+
   # pingpong_crit:
   #   type: CB
   #   weight: 0.5
@@ -128,8 +111,8 @@ train:
 
 # validation configs
 test:
-  tempo_extent: 7
-  test_freq: 20000
+  tempo_extent: 24
+  test_freq: 5000
 
   # whether to save the generated SR results
   save_res: false
@@ -146,10 +129,7 @@ test:
 # metric configs
 metric:
   PSNR:
-    colorspace: y
-    mult: 1.0
-
-  SSIM:
+    colorspace: rgb
     mult: 1.0
 
   LPIPS:
@@ -160,13 +140,15 @@ metric:
     version: 0.1
     mult: 1.0
 
+  SSIM:
+    mult: 1.0
+
   # tOF:
   #   mult: 1.0
 
-
 # logger configs
 logger:
-  tb_freq: 1000
+  tb_freq: 500
   log_freq: 100
   decay: 0.99
   ckpt_freq: 5000

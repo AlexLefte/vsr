@@ -10,6 +10,8 @@ class TSAFusion(nn.Module):
         (SFT: Recovering realistic texture in image super-resolution by deep
             spatial feature transform.)
 
+    ``Github: https://github.com/xinntao/EDVR``
+
     Args:
         num_feat (int): Channel number of middle features. Default: 64.
         num_frame (int): Number of frames. Default: 5.

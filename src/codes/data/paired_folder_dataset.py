@@ -1,20 +1,9 @@
 import os
 import os.path as osp
-
 import cv2
 import numpy as np
 import torch
-
-from .base_dataset import BaseDataset
-from utils.base_utils import retrieve_files
-
-
-import os
-import os.path as osp
 import random
-import cv2
-import numpy as np
-import torch
 
 from .base_dataset import BaseDataset
 from utils.base_utils import retrieve_files, retrieve_random_file

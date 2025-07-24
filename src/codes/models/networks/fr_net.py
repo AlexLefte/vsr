@@ -29,7 +29,7 @@ class FRNet(BaseSequenceGenerator):
         # define fnet & srnet
         self.fnet = FNet(in_nc)
         self.srnet = SRNet(self.reconstruction_channels, out_nc, nf, nb,
-                              self.upsample_func, transp_conv=transp_conv, 
+                              self.upsample_func, transp_conv=transp_conv,
                               with_tsa=with_tsa, ref_idx=0, shallow_feat_res=shallow_feat_res)
 
     def generate_dummy_input(self, lr_size):

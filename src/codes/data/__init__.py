@@ -5,7 +5,6 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from .paired_lmdb_dataset import PairedLMDBDataset
-from .unpaired_lmdb_dataset import UnpairedLMDBDataset
 from .paired_folder_dataset import PairedFolderDatasetInfer, PairedFolderDatasetTrain
 
 
@@ -50,18 +49,9 @@ def create_dataloader(opt, dataset_idx='train'):
                     train=True)
 
         elif degradation_type == 'BD':
-            # enlarge crop size to incorporate border size
-            sigma = opt['dataset']['degradation']['sigma']
-            enlarged_crop_size = data_opt['crop_size'] + 2 * int(sigma * 3.0)
-
-            # create dataset
-            dataset = UnpairedLMDBDataset(
-                data_opt,
-                crop_size=enlarged_crop_size,  # override
-                tempo_extent=opt['train']['tempo_extent'],
-                moving_first_frame=opt['train'].get('moving_first_frame', False),
-                moving_factor=opt['train'].get('moving_factor', 1.0))
-
+            raise NotImplementedError('Unimplemented degradation type: {}'.format(
+                degradation_type))
+        
         else:
             raise ValueError('Unrecognized degradation type: {}'.format(
                 degradation_type))
