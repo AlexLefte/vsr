@@ -6,6 +6,7 @@ import yaml
 import time
 import torch
 import numpy as np
+import sys
 from tqdm import tqdm
 from data import create_dataloader, prepare_data
 from models import define_model
@@ -14,6 +15,24 @@ from metrics.metric_calculator import MetricCalculator
 from metrics.model_summary import register, profile_model
 from utils import base_utils, data_utils
 from torch.utils.tensorboard import SummaryWriter
+import psutil
+
+
+def get_gpu_temp():
+    import subprocess
+    try:
+        output = subprocess.check_output(
+            ["nvidia-smi", "--query-gpu=temperature.gpu", "--format=csv,noheader,nounits"])
+        return int(output.decode().strip())
+    except Exception as e:
+        print(f"Temp check failed: {e}")
+        return -1
+
+
+def log_memory_usage():
+    process = psutil.Process()
+    memory_info = process.memory_info()
+    print(f"Memory usage: {memory_info.rss / (1024 * 1024):.2f} MB")
 
 
 def train(opt):
@@ -53,10 +72,16 @@ def train(opt):
     logger.info('Total epochs needed: {} for {} iterations'.format(
         total_epoch, total_iter))
 
+    # define metric calculator
+    metric_calculator = MetricCalculator(opt)
+
     # train
     for epoch in range(total_epoch):
         print(f'Running epoch: {epoch}...') 
         for data in tqdm(train_loader):
+            # Get batch time
+            batch_start = time.time()
+
             # update iter
             iter += 1
             curr_iter = start_iter + iter
@@ -99,6 +124,9 @@ def train(opt):
             if ckpt_freq > 0 and iter % ckpt_freq == 0:
                 model.save(curr_iter)
 
+            # Get batch end
+            batch_end = time.time()
+
             # evaluate performance
             if test_freq > 0 and iter % test_freq == 0:
                 # setup model index
@@ -116,9 +144,6 @@ def train(opt):
 
                     # create data loader
                     test_loader = create_dataloader(opt, dataset_idx=dataset_idx)
-
-                    # define metric calculator
-                    metric_calculator = MetricCalculator(opt)
 
                     # infer and compute metrics for each sequence
                     print(f'Running validation on {ds_name}...')
@@ -148,10 +173,9 @@ def train(opt):
                                 res_seq_dir, hr_seq, frm_idx, to_bgr=True, dtype=gt_dtype)
 
                         # compute metrics for the current sequence
-                        true_seq_dir = osp.join(
-                            opt['dataset'][dataset_idx]['gt_seq_dir'], seq_idx)
                         metric_calculator.compute_sequence_metrics(
                             seq_idx, '', '', true_seq=gt_seq, pred_seq=hr_seq)
+                    
                     stop_infer = time.time()
                     print(f'Elapsed validation time: {stop_infer - start_infer}s.')
 
@@ -164,7 +188,29 @@ def train(opt):
                         # save results to json file
                         json_path = osp.join(
                             opt['test']['json_dir'], '{}_avg.json'.format(ds_name))
-                        metric_calculator.save_results(model_idx, json_path, override=True, iter=iter, tb_logger=tb_logger)             
+                        metric_calculator.save_results(model_idx, json_path, override=True, iter=iter, tb_logger=tb_logger) 
+                    
+                    # Reset the metric calculator
+                    metric_calculator.reset()
+                time.sleep(30)            
+                
+            if batch_end - batch_start > 100:
+                logger.warning("Batch duration exceeded threshold. Saving model and exiting.")
+                model.save(curr_iter)
+                if tb_logger:
+                    tb_logger.close()
+                sys.exit(0)
+
+            if curr_iter % 1000 == 0:
+                temp = get_gpu_temp()
+                print(f"GPU temp: {temp}°C.")
+                if temp > 80: 
+                    logger.warning(f"High GPU temp: {temp}°C. Sleeping for 5min...")
+                    time.sleep(300)
+
+                # Log memory usage
+                log_memory_usage()
+
     if tb_logger:
         tb_logger.close()
 
